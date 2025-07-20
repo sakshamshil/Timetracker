@@ -1,0 +1,2 @@
+[console_scripts]
+track = timetrack.cli:main
