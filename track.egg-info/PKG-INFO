@@ -5,4 +5,5 @@ Requires-Dist: pandas
 Requires-Dist: pydantic
 Requires-Dist: openpyxl
 Requires-Dist: click
+Requires-Dist: python-dateutil
 Dynamic: requires-dist

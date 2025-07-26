@@ -1,4 +1,3 @@
-
 # project/timetrack/core.py
 """Core logic for the timetrack application."""
 
@@ -8,8 +7,9 @@ from datetime import datetime, timedelta, date
 from pathlib import Path
 from typing import Optional, Tuple
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from .models import ApplicationState, TimeEntry, TimeLog
+from dateutil.parser import parse  # type: ignore
 
 # =================================
 # CONSTANTS
@@ -48,12 +48,31 @@ class TimeTracker:
             return TimeLog()
         try:
             log_data = json.loads(LOG_FILE.read_text())
-            return TimeLog.model_validate(log_data)
+            validated_entries = []
+            for entry_data in log_data.get("entries", []):
+                if (
+                    "start_time" in entry_data
+                    and isinstance(entry_data["start_time"], str)
+                    and "date" in entry_data
+                ):
+                    # Old format, try to convert
+                    try:
+                        start_dt_str = (
+                            f"{entry_data['date']} {entry_data['start_time']}"
+                        )
+                        end_dt_str = f"{entry_data['date']} {entry_data['end_time']}"
+                        entry_data["start_time"] = datetime.fromisoformat(start_dt_str)
+                        entry_data["end_time"] = datetime.fromisoformat(end_dt_str)
+                    except (ValueError, KeyError):
+                        continue  # Skip malformed old entries
+                validated_entries.append(TimeEntry.model_validate(entry_data))
+            return TimeLog(entries=validated_entries)
         except (json.JSONDecodeError, ValueError):
             return TimeLog()
 
     def _write_log(self, log: TimeLog):
         """Writes the time log to the log file."""
+        log.entries.sort(key=lambda x: x.start_time)
         LOG_FILE.write_text(log.model_dump_json(indent=4))
 
     def start(self, activity: str) -> Tuple[bool, str]:
@@ -98,11 +117,11 @@ class TimeTracker:
         duration_minutes = round(total_seconds / 60)
 
         log_entry = TimeEntry(
-            date=state.start_time.strftime("%Y-%m-%d"),
-            start_time=state.start_time.strftime("%H:%M:%S"),
-            end_time=end_time.strftime("%H:%M:%S"),
+            start_time=state.start_time,
+            end_time=end_time,
             activity=state.activity,
             duration_minutes=duration_minutes,
+            notes=state.notes,
         )
 
         log = self._read_log()
@@ -168,20 +187,30 @@ class TimeTracker:
         if not state:
             return "⚪ No task is currently running."
 
+        output = []
         if state.status == "paused":
             elapsed_seconds = state.total_paused_seconds
             elapsed_minutes = round(elapsed_seconds / 60)
-            return (
+            output.append(
                 f"⏸️ Paused Task: '{state.activity}' ({elapsed_minutes} minutes logged)"
             )
+        else:
+            # For running tasks
+            elapsed_seconds = (
+                datetime.now() - state.start_time
+            ).total_seconds() - state.total_paused_seconds
+            elapsed_minutes = round(elapsed_seconds / 60)
+            start_time_str = state.start_time.strftime("%H:%M:%S")
+            output.append(
+                f"🟢 Active Task: '{state.activity}' (started at {start_time_str}, {elapsed_minutes} minutes so far)"
+            )
 
-        # For running tasks
-        elapsed_seconds = (
-            datetime.now() - state.start_time
-        ).total_seconds() - state.total_paused_seconds
-        elapsed_minutes = round(elapsed_seconds / 60)
-        start_time_str = state.start_time.strftime("%H:%M:%S")
-        return f"🟢 Active Task: '{state.activity}' (started at {start_time_str}, {elapsed_minutes} minutes so far)"
+        if state.notes:
+            output.append("   Notes:")
+            for note in state.notes:
+                output.append(f"     - {note}")
+
+        return "\n".join(output)
 
     def get_log(self, day_filter: str) -> str:
         """
@@ -209,7 +238,14 @@ class TimeTracker:
 
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        entries_for_day = [e for e in log.entries if e.date == target_date_str]
+        entries_for_day = sorted(
+            [
+                e
+                for e in log.entries
+                if e.start_time.strftime("%Y-%m-%d") == target_date_str
+            ],
+            key=lambda x: x.start_time,
+        )
 
         if not entries_for_day:
             return f"No log entries for {target_date.strftime('%Y-%m-%d')}."
@@ -224,8 +260,11 @@ class TimeTracker:
         for entry in entries_for_day:
             duration_str = f"{entry.duration_minutes} min"
             output.append(
-                f"{entry.start_time:<10} {entry.end_time:<10} {entry.activity:<50} {duration_str:>10}"
+                f"{entry.start_time.strftime('%H:%M:%S'):<10} {entry.end_time.strftime('%H:%M:%S'):<10} {entry.activity:<50} {duration_str:>10}"
             )
+            if entry.notes:
+                for note in entry.notes:
+                    output.append(f"  - {note}")
             total_minutes += entry.duration_minutes
 
         output.append("-" * 82)
@@ -254,7 +293,13 @@ class TimeTracker:
         if not log_data.entries:
             return False, "No log entries to export."
 
-        df = pd.DataFrame([entry.model_dump() for entry in log_data.entries])
+        processed_entries = []
+        for entry in log_data.entries:
+            entry_dict = entry.model_dump()
+            entry_dict["notes"] = "\n".join(entry.notes) if entry.notes else ""
+            processed_entries.append(entry_dict)
+
+        df = pd.DataFrame(processed_entries)
 
         # Define the output directory and create it if it doesn't exist
         project_dir = Path(__file__).parent.parent
@@ -270,7 +315,7 @@ class TimeTracker:
             if file_format == "csv":
                 df.to_csv(output_path, index=False)
             elif file_format == "xlsx":
-                df.to_excel(output_path, index=False, engine='openpyxl')
+                df.to_excel(output_path, index=False, engine="openpyxl")
             else:
                 return False, f"Unsupported format: {file_format}"
         except Exception as e:
@@ -278,27 +323,102 @@ class TimeTracker:
 
         return True, f"✅ Successfully exported all data to {output_path}"
 
-    def start_previous(self) -> Tuple[bool, str]:
+    def add_note(self, note_text: str) -> Tuple[bool, str]:
+        """Adds a note to the current task."""
+        state = self._read_state()
+        if not state:
+            return False, "⚪ No task is currently running."
+
+        state.notes.append(note_text)
+        self._write_state(state)
+        return True, "✅ Note added."
+
+    def _parse_duration(self, duration_str: str) -> Optional[timedelta]:
+        """Parses a duration string like '1h30m' into a timedelta."""
+        match = re.match(r"((?P<hours>\d+)h)?((?P<minutes>\d+)m)?", duration_str)
+        if not match:
+            return None
+        parts = match.groupdict()
+        time_params = {}
+        for name, param in parts.items():
+            if param:
+                time_params[name] = int(param)
+        return timedelta(**time_params)
+
+    def _format_duration(self, duration: timedelta) -> str:
+        """Formats a timedelta into a human-readable string."""
+        total_minutes = int(duration.total_seconds() / 60)
+        hours, minutes = divmod(total_minutes, 60)
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
+
+    def add_entry(
+        self,
+        activity: str,
+        start_str: str,
+        end_str: Optional[str],
+        duration_str: Optional[str],
+    ) -> Tuple[bool, str]:
         """
-        Starts a new task based on the last logged activity.
+        Adds a time entry retrospectively.
+
+        Args:
+            activity (str): The name of the task.
+            start_str (str): The start time string.
+            end_str (Optional[str]): The end time string.
+            duration_str (Optional[str]): The duration string.
 
         Returns:
             A tuple containing a success flag and a message.
         """
-        if self._read_state():
-            return False, "🔴 Error: A task is already running. Please stop it before starting a new one."
+
+        today_str = date.today().strftime("%Y-%m-%d")
+        yesterday_str = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        start_str = start_str.lower().replace("today", today_str)
+        start_str = start_str.lower().replace("yesterday", yesterday_str)
+
+        if end_str:
+            end_str = end_str.lower().replace("today", today_str)
+            end_str = end_str.lower().replace("yesterday", yesterday_str)
+
+        try:
+            start_time = parse(start_str, dayfirst=True)
+        except ValueError:
+            return False, "❗ Error: Invalid start time format."
+
+        if end_str:
+            try:
+                end_time = parse(end_str, dayfirst=True)
+            except ValueError:
+                return False, "❗ Error: Invalid end time format."
+        elif duration_str:
+            duration = self._parse_duration(duration_str)
+            if not duration:
+                return False, "❗ Error: Invalid duration format. Use '1h' or '30m'."
+            end_time = start_time + duration
+        else:
+            return False, "❗ Error: Either --end or --for must be provided."
+
+        if end_time <= start_time:
+            return False, "❗ Error: End time must be after start time."
+
+        duration_minutes = round((end_time - start_time).total_seconds() / 60)
+
+        new_entry = TimeEntry(
+            start_time=start_time,
+            end_time=end_time,
+            activity=activity,
+            duration_minutes=duration_minutes,
+        )
 
         log = self._read_log()
-        if not log.entries:
-            return False, "🔴 Error: No previous task found in the log. Use 'track start' to begin."
+        log.entries.append(new_entry)
+        log.entries.sort(key=lambda x: x.start_time)
+        self._write_log(log)
 
-        last_task_name = log.entries[-1].activity
-        
-        match = re.search(r'(.+) - (\d+)$', last_task_name)
-        if match:
-            base_name, number = match.groups()
-            new_task_name = f"{base_name} - {int(number) + 1}"
-        else:
-            new_task_name = f"{last_task_name} - 2"
-            
-        return self.start(new_task_name)
+        return (
+            True,
+            f"✅ Logged '{activity}' for {self._format_duration(end_time - start_time)}.",
+        )

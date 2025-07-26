@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages  # type: ignore
 
 setup(
     name="track",
@@ -10,6 +10,7 @@ setup(
         "pydantic",
         "openpyxl",
         "click",
+        "python-dateutil",
     ],
     entry_points={
         "console_scripts": [

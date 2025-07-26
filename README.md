@@ -90,15 +90,36 @@ track resume
 
 ---
 
-#### 5. Check the Current Status
-To see which task is currently running and for how long, use the `status` command.
+#### 5. Add a Note to the Current Task
+While a task is running, you can add multiple notes to it. This is useful for logging details, progress, or any other relevant information.
+
+**Usage:**
+```bash
+track notes "<NOTE_TEXT>"
+```
+
+**Example:**
+```bash
+track notes "Finished the main logic, now writing tests."
+```
+> **Output:**
+> `✅ Note added.`
+
+---
+
+#### 6. Check the Current Status
+To see which task is currently running and for how long, use the `status` command. The output will also include any notes you've added.
 
 **Usage:**
 ```bash
 track status
 ```
-> **Output (if a task is running):**
-> `🟢 Active Task: 'Developing a new feature' (15 minutes so far)`
+> **Output (if a task is running with notes):**
+> ```
+> 🟢 Active Task: 'Developing a new feature' (15 minutes so far)
+>    Notes:
+>      - Finished the main logic, now writing tests.
+> ```
 >
 > **Output (if a task is paused):**
 > `⏸️ Paused Task: 'Developing a new feature' (20 minutes logged)`
@@ -108,8 +129,53 @@ track status
 
 ---
 
-#### 6. View Time Logs
-To see a summary of all tasks you have logged, use the `log` command. By default, it shows today's log.
+#### 7. Add a Manual Time Entry
+For moments when you forget to use `start` and `stop`, the `add` command lets you log time retrospectively. It's a flexible tool that accepts a variety of date, time, and duration formats.
+
+**Usage:**
+```bash
+track add "<ACTIVITY>" --start "<TIME>" [--end "<TIME>" | --for "<DURATION>"]
+```
+
+**Arguments & Options:**
+-   `"<ACTIVITY>"` (Required): The name of the task you are logging.
+-   `--start "<TIME>"` (Required): The start time of the task.
+-   `--end "<TIME>"` (Optional): The end time of the task. You must provide either `--end` or `--for`.
+-   `--for "<DURATION>"` (Optional): The duration of the task. You must provide either `--end` or `--for`.
+
+**Key Features:**
+-   You must provide a start time and **either** an end time or a duration, but not both.
+-   The command intelligently parses a wide range of time and duration formats.
+
+**Time Format Examples (`--start` and `--end`):**
+The time parser is highly flexible. Here are some of the formats you can use:
+-   **Relative Dates:** `today 10:00`, `yesterday 3pm`, `today 14:30:15`
+-   **Absolute Dates:** `25-07-2025 10:00`, `2025-07-25 14:30`, `July 25 2025 2:30pm`
+-   **Time Only:** `10:00` (defaults to today), `3:15pm`
+
+**Duration Format Examples (`--for`):**
+Provide durations in a simple, combined format:
+-   `1h` (1 hour)
+-   `30m` (30 minutes)
+-   `2h15m` (2 hours and 15 minutes)
+-   `90m` (90 minutes)
+
+**Examples:**
+```bash
+# Log a 2-hour task that happened today
+track add "Team Retrospective" --start "today 2pm" --for "2h"
+
+# Log a task from yesterday with a specific start and end time
+track add "Design review" --start "yesterday 10:00" --end "yesterday 11:30"
+
+# Log a task with a specific date
+track add "Client call" --start "22-07-2025 15:00" --for "45m"
+```
+
+---
+
+#### 8. View Time Logs
+To see a summary of all tasks you have logged, use the `log` command. By default, it shows today's log. Any notes associated with a task will be displayed beneath it.
 
 **Usage:**
 ```bash
@@ -130,6 +196,7 @@ track log yesterday
 > Start      End        Activity                                             Duration
 > --------------------------------------------------------------------------------
 > 10:30:15   10:55:20   Developing a new feature                               25 min
+>   - Finished the main logic.
 > 11:05:00   11:35:30   Team meeting                                           30 min
 > --------------------------------------------------------------------------------
 > Total time for 2025-07-19: 55 minutes
@@ -137,8 +204,8 @@ track log yesterday
 
 ---
 
-#### 7. Export All Data
-To export your entire time log history to a file, use the `export` command.
+#### 9. Export All Data
+To export your entire time log history to a file, use the `export` command. The exported file will include a `notes` column where multiple notes are separated by newlines.
 
 **Usage:**
 ```bash

@@ -2,7 +2,7 @@
 """Pydantic models for the timetrack application."""
 
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field  # type: ignore
 from datetime import datetime
 
 
@@ -23,6 +23,7 @@ class ApplicationState(BaseModel):
     status: str = "running"
     pause_start_time: Optional[datetime] = None
     total_paused_seconds: float = 0.0
+    notes: List[str] = Field(default_factory=list)
 
 
 class TimeEntry(BaseModel):
@@ -30,18 +31,18 @@ class TimeEntry(BaseModel):
     Represents a single, completed time entry in the log (timelog.json).
 
     Args:
-        date (str): The date of the entry in YYYY-MM-DD format.
-        start_time (str): The start time in HH:MM:SS format.
-        end_time (str): The end time in HH:MM:SS format.
+        start_time (datetime): The start time of the entry.
+        end_time (datetime): The end time of the entry.
         activity (str): The name of the logged task.
         duration_minutes (int): The total duration of the task in minutes.
+        notes (List[str]): A list of notes for the entry.
     """
 
-    date: str
-    start_time: str
-    end_time: str
+    start_time: datetime
+    end_time: datetime
     activity: str
     duration_minutes: int
+    notes: List[str] = Field(default_factory=list)
 
 
 class TimeLog(BaseModel):

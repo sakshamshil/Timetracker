@@ -7,5 +7,6 @@ pytest
 freezegun
 click
 pydantic
+python-dateutil
 pandas
 openpyxl

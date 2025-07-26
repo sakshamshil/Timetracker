@@ -1,0 +1,9 @@
+start_time,end_time,activity,duration_minutes,notes
+2025-07-25 17:00:00.000000,2025-07-25 18:30:00.000000,Testing yesterday,90,
+2025-07-26 09:00:00.000000,2025-07-26 10:00:00.000000,Testing today,60,
+2025-07-26 10:00:00.000000,2025-07-26 11:00:00.000000,Test with end,60,
+2025-07-26 10:30:00.000000,2025-07-26 10:45:00.000000,Test sorting,15,
+2025-07-26 12:00:00.000000,2025-07-26 12:45:00.000000,Test with for,45,
+2025-07-26 19:00:00.000000,2025-07-26 20:30:00.000000,this,90,
+2025-07-26 23:01:39.993155,2025-07-26 23:03:35.670017,Testing the new notes feature,2,"First note: Check the status command output.
+Second note: Ensure log and export also work."
