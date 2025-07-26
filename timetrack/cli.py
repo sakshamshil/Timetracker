@@ -114,6 +114,21 @@ def export(file_format: str):
 
 
 @main.command()
+@click.argument("entry_id", type=int)
+@click.option(
+    "--when",
+    "when",
+    default="today",
+    help="Specify the day to remove the entry from (e.g., 'today', 'yesterday', or 'DD-MM-YYYY').",
+)
+def remove(entry_id: int, when: str):
+    """Remove a specific log entry by its ID for a given day."""
+    tracker = TimeTracker()
+    success, message = tracker.remove_entry(when, entry_id)
+    click.echo(message)
+
+
+@main.command()
 def prev():
     """Start a new task based on the previous one."""
     tracker = TimeTracker()

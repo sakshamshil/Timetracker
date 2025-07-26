@@ -252,19 +252,21 @@ class TimeTracker:
 
         output = [f"--- Time Log for {target_date_str} ---"]
         output.append(
-            "{:<10} {:<10} {:<50} {:>10}".format("Start", "End", "Activity", "Duration")
+            "{:<5} {:<10} {:<10} {:<45} {:>10}".format(
+                "ID", "Start", "End", "Activity", "Duration"
+            )
         )
         output.append("-" * 82)
 
         total_minutes = 0
-        for entry in entries_for_day:
+        for i, entry in enumerate(entries_for_day):
             duration_str = f"{entry.duration_minutes} min"
             output.append(
-                f"{entry.start_time.strftime('%H:%M:%S'):<10} {entry.end_time.strftime('%H:%M:%S'):<10} {entry.activity:<50} {duration_str:>10}"
+                f"{i:<5} {entry.start_time.strftime('%H:%M:%S'):<10} {entry.end_time.strftime('%H:%M:%S'):<10} {entry.activity:<45} {duration_str:>10}"
             )
             if entry.notes:
                 for note in entry.notes:
-                    output.append(f"  - {note}")
+                    output.append(f"      - {note}")
             total_minutes += entry.duration_minutes
 
         output.append("-" * 82)
@@ -322,6 +324,46 @@ class TimeTracker:
             return False, f"An error occurred during export: {e}"
 
         return True, f"✅ Successfully exported all data to {output_path}"
+
+    def remove_entry(self, day_filter: str, entry_id: int) -> Tuple[bool, str]:
+        """
+        Removes a specific entry from the log for a given day.
+
+        Args:
+            day_filter (str): The day to filter by ('today', 'yesterday', or 'DD-MM-YYYY').
+            entry_id (int): The ID of the entry to remove from the filtered log.
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        log = self._read_log()
+        if not log.entries:
+            return False, "❗ No entries found in the log."
+
+        try:
+            if day_filter == "today":
+                target_date = date.today()
+            elif day_filter == "yesterday":
+                target_date = date.today() - timedelta(days=1)
+            else:
+                target_date = datetime.strptime(day_filter, "%d-%m-%Y").date()
+        except ValueError:
+            return False, "❗ Error: Invalid date format. Please use DD-MM-YYYY."
+
+        target_date_str = target_date.strftime("%Y-%m-%d")
+
+        entries_for_day = [
+            e for e in log.entries if e.start_time.strftime("%Y-%m-%d") == target_date_str
+        ]
+
+        if not (0 <= entry_id < len(entries_for_day)):
+            return False, f"❗ Invalid ID: {entry_id} for the selected day."
+
+        entry_to_remove = entries_for_day[entry_id]
+        log.entries.remove(entry_to_remove)
+        self._write_log(log)
+
+        return True, f"✅ Removed entry: '{entry_to_remove.activity}'"
 
     def add_note(self, note_text: str) -> Tuple[bool, str]:
         """Adds a note to the current task."""
