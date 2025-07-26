@@ -1,0 +1,11 @@
+pandas-stubs
+types-python-dateutil
+types-setuptools
+ruff
+mypy
+pytest
+freezegun
+click
+pydantic
+pandas
+openpyxl

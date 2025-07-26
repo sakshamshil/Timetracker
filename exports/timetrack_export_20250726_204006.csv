@@ -1,0 +1,8 @@
+date,start_time,end_time,activity,duration_minutes,notes
+2025-07-26,20:25:46,20:26:02,"newo
+",0,
+2025-07-26,20:26:06,20:26:09,"newo
+ - 2",0,
+2025-07-26,20:38:09,20:39:12,Testing the new notes feature,1,
+2025-07-26,20:39:26,20:39:52,Testing the new notes feature,0,"First note: Check the status command output.
+Second note: Ensure log and export also work."
