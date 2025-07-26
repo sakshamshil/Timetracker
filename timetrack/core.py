@@ -333,6 +333,21 @@ class TimeTracker:
         self._write_state(state)
         return True, "✅ Note added."
 
+    def start_previous(self) -> Tuple[bool, str]:
+        """
+        Starts a new task with the same name as the last logged entry.
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        log = self._read_log()
+        if not log.entries:
+            return False, "❗ No previous task found to start."
+
+        # The log is sorted by start_time, so the last entry is the most recent
+        last_activity = log.entries[-1].activity
+        return self.start(last_activity)
+
     def _parse_duration(self, duration_str: str) -> Optional[timedelta]:
         """Parses a duration string like '1h30m' into a timedelta."""
         match = re.match(r"((?P<hours>\d+)h)?((?P<minutes>\d+)m)?", duration_str)
