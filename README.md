@@ -301,7 +301,7 @@ track alias [COMMAND]
 
 ---
 
-#### 11. Export All Data
+#### 12. Export All Data
 To export your entire time log history to a file, use the `export` command. The exported file will include a `notes` column where multiple notes are separated by newlines.
 
 **Usage:**

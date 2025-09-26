@@ -535,6 +535,42 @@ class TimeTracker:
             f"✅ Logged '{activity}' for {self._format_duration(end_time - start_time)}.",
         )
 
+    def backdate_entry(self, duration_str: str, activity: str) -> Tuple[bool, str]:
+        """
+        Logs a task that just finished by backdating from the current time.
+
+        Args:
+            duration_str (str): The duration of the task (e.g., '1h', '30m').
+            activity (str): The name of the task.
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        duration = self._parse_duration(duration_str)
+        if not duration:
+            return False, "❗ Error: Invalid duration format. Use '1h' or '30m'."
+
+        end_time = datetime.now()
+        start_time = end_time - duration
+        duration_minutes = round(duration.total_seconds() / 60)
+
+        new_entry = TimeEntry(
+            start_time=start_time,
+            end_time=end_time,
+            activity=activity,
+            duration_minutes=duration_minutes,
+        )
+
+        log = self._read_log()
+        log.entries.append(new_entry)
+        log.entries.sort(key=lambda x: x.start_time)
+        self._write_log(log)
+
+        return (
+            True,
+            f"✅ Logged '{activity}' for {self._format_duration(duration)}.",
+        )
+
     def _read_config(self) -> Config:
         """Reads and validates the configuration file."""
         if not CONFIG_FILE.exists():

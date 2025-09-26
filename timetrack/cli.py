@@ -39,6 +39,16 @@ def add(
 
 
 @main.command()
+@click.argument("duration_str")
+@click.argument("activity")
+def backdate(duration_str: str, activity: str):
+    """Logs a task that just finished by backdating from the current time."""
+    tracker = TimeTracker()
+    success, message = tracker.backdate_entry(duration_str, activity)
+    click.echo(message)
+
+
+@main.command()
 @click.argument("activity")
 @click.option("-f", "--force", is_flag=True, help="Force start a new task, stopping the current one if it exists.")
 def start(activity: str, force: bool):
