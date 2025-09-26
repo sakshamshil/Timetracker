@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import pandas as pd  # type: ignore
-from .models import ApplicationState, TimeEntry, TimeLog
+from .models import ApplicationState, TimeEntry, TimeLog, Config
 from dateutil.parser import parse  # type: ignore
 
 # =================================
@@ -17,6 +17,7 @@ from dateutil.parser import parse  # type: ignore
 DATA_DIR = Path.home() / ".timetrack"
 STATE_FILE = DATA_DIR / "state.json"
 LOG_FILE = DATA_DIR / "timelog.json"
+CONFIG_FILE = DATA_DIR / "config.json"
 
 
 class TimeTracker:
@@ -75,22 +76,44 @@ class TimeTracker:
         log.entries.sort(key=lambda x: x.start_time)
         LOG_FILE.write_text(log.model_dump_json(indent=4))
 
-    def start(self, activity: str) -> Tuple[bool, str]:
+    def start(self, activity: str, force: bool = False) -> Tuple[bool, str]:
         """
         Starts a new task.
 
         Args:
-            activity (str): The name of the task.
+            activity (str): The name of the task or an alias.
+            force (bool): If True, stops the current task before starting a new one.
 
         Returns:
             A tuple containing a success flag and a message.
         """
-        if self._read_state():
-            return False, "❗ Error: A task is already running."
+        # Resolve alias if provided
+        if activity.startswith("@"):
+            config = self._read_config()
+            if activity not in config.aliases:
+                return False, f"❗ Error: Alias '{activity}' not found."
+            activity = config.aliases[activity]
 
-        state = ApplicationState(activity=activity, start_time=datetime.now())
-        self._write_state(state)
-        return True, f"🟢 Started tracking: '{activity}'"
+        messages = []
+        state = self._read_state()
+        if state:
+            if not force:
+                return False, "❗ Error: A task is already running. Use -f or --force to stop it and start a new one."
+            
+            # Force stop the current task
+            stop_success, stop_message = self.stop()
+            if stop_success:
+                messages.append(stop_message)
+            else:
+                # If stop fails, we probably shouldn't proceed.
+                return False, f"❗ Error: Could not stop the current task. {stop_message}"
+
+        # Start the new task
+        new_state = ApplicationState(activity=activity, start_time=datetime.now())
+        self._write_state(new_state)
+        messages.append(f"🟢 Started tracking: '{activity}'")
+        
+        return True, "\n".join(messages)
 
     def stop(self) -> Tuple[bool, str]:
         """
@@ -103,18 +126,30 @@ class TimeTracker:
         if not state:
             return False, "❗ No task is currently running."
 
-        end_time = datetime.now()
-
         if state.status == "paused":
-            # If stopped while paused, calculate duration up to the pause time
-            total_seconds = state.total_paused_seconds
+            # If stopped while paused, the task effectively ended when it was paused.
+            if not state.pause_start_time:
+                return (
+                    False,
+                    "❗ Error: Task is paused but has no pause start time. Cannot stop.",
+                )
+            end_time = state.pause_start_time
+            # The total active time is the duration from start to pause, minus previous pauses.
+            total_seconds = (
+                end_time - state.start_time
+            ).total_seconds() - state.total_paused_seconds
         else:
-            # If running, calculate total duration including previous pauses
+            # If running, calculate total duration up to now.
+            end_time = datetime.now()
             total_seconds = (
                 end_time - state.start_time
             ).total_seconds() - state.total_paused_seconds
 
         duration_minutes = round(total_seconds / 60)
+
+        # Safeguard against negative duration
+        if duration_minutes < 0:
+            duration_minutes = 0
 
         log_entry = TimeEntry(
             start_time=state.start_time,
@@ -147,10 +182,19 @@ class TimeTracker:
         if state.status == "paused":
             return False, f"❗ Task '{state.activity}' is already paused."
 
+        now = datetime.now()
+
+        # Calculate active time before pausing
+        active_seconds = (
+            (now - state.start_time).total_seconds() - state.total_paused_seconds
+        )
+        active_minutes = round(active_seconds / 60)
+
         state.status = "paused"
-        state.pause_start_time = datetime.now()
+        state.pause_start_time = now
         self._write_state(state)
-        return True, f"⏸️ Paused '{state.activity}'."
+
+        return True, f"⏸️ Paused '{state.activity}'. ({active_minutes} minutes logged so far)."
 
     def resume(self) -> Tuple[bool, str]:
         """
@@ -169,12 +213,23 @@ class TimeTracker:
             # This should not happen if the state is 'paused', but it's a safeguard.
             return False, "❗ Error: Cannot resume task, pause time is not set."
 
-        pause_duration = (datetime.now() - state.pause_start_time).total_seconds()
+        # Calculate active time at the moment of pausing
+        active_seconds = (
+            state.pause_start_time - state.start_time
+        ).total_seconds() - state.total_paused_seconds
+        active_minutes = round(active_seconds / 60)
+
+        now = datetime.now()
+        pause_duration = (now - state.pause_start_time).total_seconds()
         state.total_paused_seconds += pause_duration
         state.status = "running"
         state.pause_start_time = None
         self._write_state(state)
-        return True, f"🟢 Resumed tracking: '{state.activity}'"
+
+        return (
+            True,
+            f"🟢 Resumed tracking: '{state.activity}'. ({active_minutes} minutes already logged).",
+        )
 
     def status(self) -> str:
         """
@@ -479,3 +534,51 @@ class TimeTracker:
             True,
             f"✅ Logged '{activity}' for {self._format_duration(end_time - start_time)}.",
         )
+
+    def _read_config(self) -> Config:
+        """Reads and validates the configuration file."""
+        if not CONFIG_FILE.exists():
+            return Config()
+        try:
+            config_data = json.loads(CONFIG_FILE.read_text())
+            return Config.model_validate(config_data)
+        except (json.JSONDecodeError, ValueError):
+            return Config()
+
+    def _write_config(self, config: Config):
+        """Writes the configuration to the config file."""
+        CONFIG_FILE.write_text(config.model_dump_json(indent=4))
+
+    def add_alias(self, alias: str, activity: str) -> Tuple[bool, str]:
+        """Adds or updates an alias."""
+        if not alias.startswith("@"):
+            return False, "❗ Error: Alias must start with '@'."
+        
+        config = self._read_config()
+        config.aliases[alias] = activity
+        self._write_config(config)
+        
+        return True, f"✅ Alias '{alias}' set to '{activity}'."
+
+    def remove_alias(self, alias: str) -> Tuple[bool, str]:
+        """Removes an alias."""
+        config = self._read_config()
+        if alias not in config.aliases:
+            return False, f"❗ Error: Alias '{alias}' not found."
+        
+        del config.aliases[alias]
+        self._write_config(config)
+        
+        return True, f"✅ Alias '{alias}' removed."
+
+    def list_aliases(self) -> str:
+        """Lists all aliases."""
+        config = self._read_config()
+        if not config.aliases:
+            return "No aliases defined."
+        
+        output = ["--- Configured Aliases ---"]
+        for alias, activity in config.aliases.items():
+            output.append(f"{alias} -> {activity}")
+            
+        return "\n".join(output)

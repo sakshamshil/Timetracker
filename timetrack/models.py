@@ -1,7 +1,7 @@
 # project/timetrack/models.py
 """Pydantic models for the timetrack application."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field  # type: ignore
 from datetime import datetime
 
@@ -54,3 +54,14 @@ class TimeLog(BaseModel):
     """
 
     entries: List[TimeEntry] = Field(default_factory=list)
+
+
+class Config(BaseModel):
+    """
+    Represents the configuration file (config.json).
+
+    Args:
+        aliases (Dict[str, str]): A mapping of alias names to full activity names.
+    """
+
+    aliases: Dict[str, str] = Field(default_factory=dict)

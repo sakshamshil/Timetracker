@@ -40,10 +40,11 @@ def add(
 
 @main.command()
 @click.argument("activity")
-def start(activity: str):
+@click.option("-f", "--force", is_flag=True, help="Force start a new task, stopping the current one if it exists.")
+def start(activity: str, force: bool):
     """Start tracking a new task."""
     tracker = TimeTracker()
-    success, message = tracker.start(activity)
+    success, message = tracker.start(activity, force=force)
     click.echo(message)
 
 
@@ -133,6 +134,39 @@ def prev():
     """Start a new task based on the previous one."""
     tracker = TimeTracker()
     success, message = tracker.start_previous()
+    click.echo(message)
+
+
+@main.group()
+def alias():
+    """Manage task aliases."""
+    pass
+
+
+@alias.command("add")
+@click.argument("alias_name")
+@click.argument("activity")
+def add_alias(alias_name: str, activity: str):
+    """Add or update an alias for an activity."""
+    tracker = TimeTracker()
+    success, message = tracker.add_alias(alias_name, activity)
+    click.echo(message)
+
+
+@alias.command("remove")
+@click.argument("alias_name")
+def remove_alias(alias_name: str):
+    """Remove an alias."""
+    tracker = TimeTracker()
+    success, message = tracker.remove_alias(alias_name)
+    click.echo(message)
+
+
+@alias.command("list")
+def list_aliases():
+    """List all configured aliases."""
+    tracker = TimeTracker()
+    message = tracker.list_aliases()
     click.echo(message)
 
 

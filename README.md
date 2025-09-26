@@ -40,17 +40,31 @@ track [COMMAND]
 #### 1. Start a Task
 To begin tracking time for a new activity, use the `start` command followed by the name of the task.
 
+If a task is already running, you can use the `-f` or `--force` flag to automatically stop the current task and start the new one.
+
 **Usage:**
 ```bash
-track start "Your Task Name"
+track start "Your Task Name" [-f | --force]
 ```
 
-**Example:**
+**Examples:**
+
+**1. Start a new task when no other task is running:**
 ```bash
 track start "Developing a new feature"
 ```
 > **Output:**
 > `🟢 Started tracking: 'Developing a new feature'`
+
+**2. Force start a new task when another is already running:**
+```bash
+track start "Urgent bug fix" --force
+```
+> **Output:**
+> ```
+> ✅ Stopped tracking 'Developing a new feature'. Logged 30 minutes.
+> 🟢 Started tracking: 'Urgent bug fix'
+> ```
 
 ---
 
@@ -193,18 +207,101 @@ track log yesterday
 > **Output:**
 > ```
 > --- Time Log for 2025-07-19 ---
-> Start      End        Activity                                             Duration
+> ID    Start      End        Activity                                             Duration
 > --------------------------------------------------------------------------------
-> 10:30:15   10:55:20   Developing a new feature                               25 min
->   - Finished the main logic.
-> 11:05:00   11:35:30   Team meeting                                           30 min
+> 0     10:30:15   10:55:20   Developing a new feature                               25 min
+>       - Finished the main logic.
+> 1     11:05:00   11:35:30   Team meeting                                           30 min
 > --------------------------------------------------------------------------------
 > Total time for 2025-07-19: 55 minutes
 > ```
 
 ---
 
-#### 9. Export All Data
+#### 9. Remove a Log Entry
+To remove a specific time entry from your log, use the `remove` command with the ID of the entry you want to delete. You can find the ID for each entry by running `track log`.
+
+**Usage:**
+```bash
+track remove <ID> [--when WHEN]
+```
+
+**Arguments & Options:**
+-   `<ID>` (Required): The numerical ID of the log entry to be removed.
+-   `--when WHEN` (Optional): Specifies the day from which to remove the entry. It accepts the same formats as the `log` command (`today`, `yesterday`, or `DD-MM-YYYY`). Defaults to `today`.
+
+**Example:**
+First, view the log to find the ID of the entry you want to remove:
+```bash
+track log
+```
+> **Output:**
+> ```
+> --- Time Log for 2025-07-26 ---
+> ID    Start      End        Activity                  Duration
+> ----------------------------------------------------------------------
+> 0     09:00:00   10:00:00   Team Stand-up             60 min
+> 1     10:15:00   11:00:00   Code Review               45 min
+> ----------------------------------------------------------------------
+> Total time for 2025-07-26: 1h 45m
+> ```
+
+Now, remove the "Team Stand-up" entry using its ID:
+```bash
+track remove 0
+```
+> **Output:**
+> `✅ Removed entry: 'Team Stand-up'`
+
+---
+
+#### 10. Manage Task Aliases
+To save time on frequently used task names, you can create aliases.
+
+**Usage:**
+```bash
+track alias [COMMAND]
+```
+
+**Commands:**
+
+-   **`add <ALIAS_NAME> "<FULL_ACTIVITY>"`**
+    Adds a new alias or updates an existing one. It's recommended to prefix aliases with `@` to distinguish them from regular task names.
+
+    *Example:*
+    ```bash
+    track alias add @docs "Writing documentation for Project Phoenix"
+    ```
+    > **Output:**
+    > `✅ Alias '@docs' set to 'Writing documentation for Project Phoenix'.`
+
+-   **`remove <ALIAS_NAME>`**
+    Removes a specified alias.
+
+    *Example:*
+    ```bash
+    track alias remove @docs
+    ```
+    > **Output:**
+    > `✅ Alias '@docs' removed.`
+
+-   **`list`**
+    Shows all aliases you have configured.
+
+    *Example:*
+    ```bash
+    track alias list
+    ```
+    > **Output:**
+    > ```
+    > --- Configured Aliases ---
+    > @docs -> Writing documentation for Project Phoenix
+    > @projx -> Internal Project Phoenix - Scoping
+    > ```
+
+---
+
+#### 11. Export All Data
 To export your entire time log history to a file, use the `export` command. The exported file will include a `notes` column where multiple notes are separated by newlines.
 
 **Usage:**
