@@ -255,7 +255,49 @@ track remove 0
 
 ---
 
-#### 10. Manage Task Aliases
+#### 10. Edit a Log Entry
+To edit a specific time entry from your log, use the `edit` command with the ID of the entry you want to change. You can find the ID for each entry by running `track log`.
+
+**Usage:**
+```bash
+track edit <ID> [--when WHEN]
+```
+
+**Arguments & Options:**
+-   `<ID>` (Required): The numerical ID of the log entry to be edited.
+-   `--when WHEN` (Optional): Specifies the day from which to edit the entry. It accepts the same formats as the `log` command (`today`, `yesterday`, or `DD-MM-YYYY`). Defaults to `today`.
+
+**Example:**
+First, view the log to find the ID of the entry you want to edit:
+```bash
+track log
+```
+> **Output:**
+> ```
+> --- Time Log for 2025-09-26 ---
+> ID    Start      End        Activity                  Duration
+> ----------------------------------------------------------------------
+> 0     09:00:00   10:00:00   Team Stand-up             60 min
+> 1     10:15:00   11:00:00   Code Review               45 min
+> ----------------------------------------------------------------------
+> Total time for 2025-09-26: 1h 45m
+> ```
+
+Now, edit the "Code Review" entry using its ID:
+```bash
+track edit 1
+```
+> **Output:**
+> ```
+> Activity [Code Review]:
+> Start Time [2025-09-26T10:15:00]: 2025-09-26T10:20:00
+> End Time [2025-09-26T11:00:00]:
+> ✅ Entry 1 updated.
+> ```
+
+---
+
+#### 11. Manage Task Aliases
 To save time on frequently used task names, you can create aliases.
 
 **Usage:**

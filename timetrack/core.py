@@ -380,45 +380,97 @@ class TimeTracker:
 
         return True, f"✅ Successfully exported all data to {output_path}"
 
-    def remove_entry(self, day_filter: str, entry_id: int) -> Tuple[bool, str]:
+    def remove_entry(self, entry_id: int) -> Tuple[bool, str]:
         """
-        Removes a specific entry from the log for a given day.
+        Removes a specific entry from the log by its ID.
 
         Args:
-            day_filter (str): The day to filter by ('today', 'yesterday', or 'DD-MM-YYYY').
-            entry_id (int): The ID of the entry to remove from the filtered log.
+            entry_id (int): The ID of the entry to remove.
 
         Returns:
             A tuple containing a success flag and a message.
         """
         log = self._read_log()
-        if not log.entries:
-            return False, "❗ No entries found in the log."
+        if not (0 <= entry_id < len(log.entries)):
+            return False, f"❗ Invalid ID: {entry_id}."
 
-        try:
-            if day_filter == "today":
-                target_date = date.today()
-            elif day_filter == "yesterday":
-                target_date = date.today() - timedelta(days=1)
-            else:
-                target_date = datetime.strptime(day_filter, "%d-%m-%Y").date()
-        except ValueError:
-            return False, "❗ Error: Invalid date format. Please use DD-MM-YYYY."
-
-        target_date_str = target_date.strftime("%Y-%m-%d")
-
-        entries_for_day = [
-            e for e in log.entries if e.start_time.strftime("%Y-%m-%d") == target_date_str
-        ]
-
-        if not (0 <= entry_id < len(entries_for_day)):
-            return False, f"❗ Invalid ID: {entry_id} for the selected day."
-
-        entry_to_remove = entries_for_day[entry_id]
-        log.entries.remove(entry_to_remove)
+        entry_to_remove = log.entries.pop(entry_id)
         self._write_log(log)
 
         return True, f"✅ Removed entry: '{entry_to_remove.activity}'"
+
+    def get_entry_by_id(self, entry_id: int) -> Optional[TimeEntry]:
+        """
+        Gets a specific entry from the log by its index.
+
+        Args:
+            entry_id (int): The ID (index) of the entry to retrieve.
+
+        Returns:
+            A TimeEntry object or None if not found.
+        """
+        log = self._read_log()
+        if not (0 <= entry_id < len(log.entries)):
+            return None
+
+        return log.entries[entry_id]
+
+    def edit_entry(
+        self,
+        entry_id: int,
+        new_activity: Optional[str] = None,
+        new_start_str: Optional[str] = None,
+        new_end_str: Optional[str] = None,
+    ) -> Tuple[bool, str]:
+        """Edits an existing time entry."""
+        log = self._read_log()
+        original_entry = self.get_entry_by_id(entry_id)
+
+        if not original_entry:
+            return False, "❗ Error: Entry not found."
+
+        # Find the index of the original entry in the full log
+        try:
+            original_index = log.entries.index(original_entry)
+        except ValueError:
+            return False, "❗ Error: Could not locate entry in the main log."
+
+        # Use new values if provided, otherwise keep original values
+        activity = new_activity if new_activity is not None else original_entry.activity
+        
+        try:
+            start_time = (
+                parse(new_start_str)
+                if new_start_str is not None
+                else original_entry.start_time
+            )
+            end_time = (
+                parse(new_end_str)
+                if new_end_str is not None
+                else original_entry.end_time
+            )
+        except ValueError:
+            return False, "❗ Error: Invalid time format."
+
+        if end_time <= start_time:
+            return False, "❗ Error: End time must be after start time."
+
+        duration_minutes = round((end_time - start_time).total_seconds() / 60)
+
+        # Create a new entry with the updated details
+        updated_entry = TimeEntry(
+            start_time=start_time,
+            end_time=end_time,
+            activity=activity,
+            duration_minutes=duration_minutes,
+            notes=original_entry.notes,  # Preserve original notes
+        )
+
+        # Replace the old entry with the updated one
+        log.entries[original_index] = updated_entry
+        self._write_log(log)
+
+        return True, f"✅ Entry {entry_id} updated."
 
     def add_note(self, note_text: str) -> Tuple[bool, str]:
         """Adds a note to the current task."""

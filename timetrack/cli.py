@@ -126,16 +126,35 @@ def export(file_format: str):
 
 @main.command()
 @click.argument("entry_id", type=int)
-@click.option(
-    "--when",
-    "when",
-    default="today",
-    help="Specify the day to remove the entry from (e.g., 'today', 'yesterday', or 'DD-MM-YYYY').",
-)
-def remove(entry_id: int, when: str):
-    """Remove a specific log entry by its ID for a given day."""
+def remove(entry_id: int):
+    """Remove a specific log entry by its ID."""
     tracker = TimeTracker()
-    success, message = tracker.remove_entry(when, entry_id)
+    success, message = tracker.remove_entry(entry_id)
+    click.echo(message)
+
+
+@main.command()
+@click.argument("entry_id", type=int)
+def edit(entry_id: int):
+    """Interactively edit a time entry."""
+    tracker = TimeTracker()
+    entry = tracker.get_entry_by_id(entry_id)
+
+    if not entry:
+        click.echo("❗ Error: Entry not found.", err=True)
+        return
+
+    # Interactively get new values
+    new_activity = click.prompt("Activity", default=entry.activity)
+    new_start_str = click.prompt("Start Time", default=entry.start_time.isoformat())
+    new_end_str = click.prompt("End Time", default=entry.end_time.isoformat())
+
+    success, message = tracker.edit_entry(
+        entry_id,
+        new_activity=new_activity,
+        new_start_str=new_start_str,
+        new_end_str=new_end_str,
+    )
     click.echo(message)
 
 
