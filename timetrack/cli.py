@@ -50,7 +50,12 @@ def backdate(duration_str: str, activity: str):
 
 @main.command()
 @click.argument("activity")
-@click.option("-f", "--force", is_flag=True, help="Force start a new task, stopping the current one if it exists.")
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    help="Force start a new task, stopping the current one if it exists.",
+)
 def start(activity: str, force: bool):
     """Start tracking a new task."""
     tracker = TimeTracker()
@@ -97,7 +102,6 @@ def notes(note_text: str):
     tracker = TimeTracker()
     success, message = tracker.add_note(note_text)
     click.echo(message)
-
 
 
 @main.command()

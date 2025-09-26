@@ -98,21 +98,27 @@ class TimeTracker:
         state = self._read_state()
         if state:
             if not force:
-                return False, "❗ Error: A task is already running. Use -f or --force to stop it and start a new one."
-            
+                return (
+                    False,
+                    "❗ Error: A task is already running. Use -f or --force to stop it and start a new one.",
+                )
+
             # Force stop the current task
             stop_success, stop_message = self.stop()
             if stop_success:
                 messages.append(stop_message)
             else:
                 # If stop fails, we probably shouldn't proceed.
-                return False, f"❗ Error: Could not stop the current task. {stop_message}"
+                return (
+                    False,
+                    f"❗ Error: Could not stop the current task. {stop_message}",
+                )
 
         # Start the new task
         new_state = ApplicationState(activity=activity, start_time=datetime.now())
         self._write_state(new_state)
         messages.append(f"🟢 Started tracking: '{activity}'")
-        
+
         return True, "\n".join(messages)
 
     def stop(self) -> Tuple[bool, str]:
@@ -186,15 +192,18 @@ class TimeTracker:
 
         # Calculate active time before pausing
         active_seconds = (
-            (now - state.start_time).total_seconds() - state.total_paused_seconds
-        )
+            now - state.start_time
+        ).total_seconds() - state.total_paused_seconds
         active_minutes = round(active_seconds / 60)
 
         state.status = "paused"
         state.pause_start_time = now
         self._write_state(state)
 
-        return True, f"⏸️ Paused '{state.activity}'. ({active_minutes} minutes logged so far)."
+        return (
+            True,
+            f"⏸️ Paused '{state.activity}'. ({active_minutes} minutes logged so far).",
+        )
 
     def resume(self) -> Tuple[bool, str]:
         """
@@ -437,7 +446,7 @@ class TimeTracker:
 
         # Use new values if provided, otherwise keep original values
         activity = new_activity if new_activity is not None else original_entry.activity
-        
+
         try:
             start_time = (
                 parse(new_start_str)
@@ -641,11 +650,11 @@ class TimeTracker:
         """Adds or updates an alias."""
         if not alias.startswith("@"):
             return False, "❗ Error: Alias must start with '@'."
-        
+
         config = self._read_config()
         config.aliases[alias] = activity
         self._write_config(config)
-        
+
         return True, f"✅ Alias '{alias}' set to '{activity}'."
 
     def remove_alias(self, alias: str) -> Tuple[bool, str]:
@@ -653,10 +662,10 @@ class TimeTracker:
         config = self._read_config()
         if alias not in config.aliases:
             return False, f"❗ Error: Alias '{alias}' not found."
-        
+
         del config.aliases[alias]
         self._write_config(config)
-        
+
         return True, f"✅ Alias '{alias}' removed."
 
     def list_aliases(self) -> str:
@@ -664,9 +673,9 @@ class TimeTracker:
         config = self._read_config()
         if not config.aliases:
             return "No aliases defined."
-        
+
         output = ["--- Configured Aliases ---"]
         for alias, activity in config.aliases.items():
             output.append(f"{alias} -> {activity}")
-            
+
         return "\n".join(output)
