@@ -24,6 +24,16 @@ This application is installed using `pipx` to ensure it runs in an isolated envi
 
 This will install the `track` command on your system, allowing you to run it from any directory.
 
+### Updating on Another Machine
+
+If you've already installed the app on another machine and want to get the latest changes:
+
+```bash
+track update
+```
+
+This pulls the latest code from GitHub and reinstalls automatically. See [Update the Application](#15-update-the-application) for details.
+
 ## How to Use
 
 All commands are run from your terminal.
@@ -424,7 +434,41 @@ track memo --remove 0
 
 ---
 
-#### 15. Export All Data
+#### 15. Update the Application
+Keep your installation up to date by pulling the latest changes from GitHub and reinstalling.
+
+**Usage:**
+```bash
+track update
+```
+
+**What it does:**
+1. Checks for uncommitted local changes (fails if found)
+2. Runs `git pull origin main`
+3. Reinstalls with `pipx reinstall track` (or `pip install -e .` as fallback)
+
+**Example:**
+```bash
+track update
+```
+> **Output (when updates available):**
+> ```
+> ✅ Updated successfully!
+> Updating 508fbee..a1b2c3d
+> Fast-forward
+>  timetrack/core.py | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 50 insertions(+)
+> ```
+>
+> **Output (when already up to date):**
+> `✅ Already up to date. No changes to pull.`
+>
+> **Output (when you have uncommitted changes):**
+> `❗ Error: You have uncommitted changes. Please commit or stash them first.`
+
+---
+
+#### 16. Export All Data
 To export your entire time log history to a file, use the `export` command. The exported file will include a `notes` column where multiple notes are separated by newlines.
 
 **Usage:**

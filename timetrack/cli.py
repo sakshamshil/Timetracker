@@ -204,6 +204,16 @@ def memo(text: Optional[str], remove_id: Optional[int]):
         click.echo(message)
 
 
+@main.command()
+def update():
+    """Update the application by pulling latest changes from git."""
+    tracker = TimeTracker()
+    success, message = tracker.update()
+    click.echo(message)
+    if not success:
+        raise SystemExit(1)
+
+
 @main.group()
 def alias():
     """Manage task aliases."""

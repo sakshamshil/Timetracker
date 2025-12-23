@@ -3,6 +3,8 @@
 
 import json
 import re
+import subprocess
+import shutil
 from datetime import datetime, timedelta, date
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -839,3 +841,92 @@ class TimeTracker:
         # Truncate for display
         display_text = removed_memo.text[:30] + "..." if len(removed_memo.text) > 30 else removed_memo.text
         return True, f"✅ Memo removed: '{display_text}'"
+
+    def update(self) -> Tuple[bool, str]:
+        """
+        Updates the application by pulling latest changes from git and reinstalling.
+
+        Uses fail-closed error handling: stops at first error with a meaningful message.
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        # Step 1: Find the repo directory
+        repo_dir = Path(__file__).parent.parent
+
+        # Step 2: Verify git is installed
+        if not shutil.which("git"):
+            return False, "❗ Error: git is not installed or not in PATH."
+
+        # Step 3: Verify this is a git repository
+        git_dir = repo_dir / ".git"
+        if not git_dir.exists():
+            return False, f"❗ Error: Not a git repository at {repo_dir}"
+
+        # Step 4: Check for uncommitted changes that might cause conflicts
+        try:
+            status_result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+            )
+            if status_result.returncode != 0:
+                return False, f"❗ Error: Failed to check git status.\n{status_result.stderr}"
+
+            if status_result.stdout.strip():
+                return False, "❗ Error: You have uncommitted changes. Please commit or stash them first."
+        except Exception as e:
+            return False, f"❗ Error: Failed to run git status: {e}"
+
+        # Step 5: Pull latest changes
+        try:
+            pull_result = subprocess.run(
+                ["git", "pull", "origin", "main"],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+            )
+            if pull_result.returncode != 0:
+                return False, f"❗ Error: git pull failed.\n{pull_result.stderr}"
+
+            pull_output = pull_result.stdout.strip()
+        except Exception as e:
+            return False, f"❗ Error: Failed to run git pull: {e}"
+
+        # Step 6: Reinstall with pipx (preferred) or pip
+        if shutil.which("pipx"):
+            try:
+                reinstall_result = subprocess.run(
+                    ["pipx", "reinstall", "track"],
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                )
+                if reinstall_result.returncode != 0:
+                    return False, f"❗ Error: pipx reinstall failed.\n{reinstall_result.stderr}"
+            except Exception as e:
+                return False, f"❗ Error: Failed to run pipx reinstall: {e}"
+        else:
+            # Fallback to pip
+            pip_cmd = shutil.which("pip3") or shutil.which("pip")
+            if not pip_cmd:
+                return False, "❗ Error: Neither pipx nor pip found in PATH."
+
+            try:
+                reinstall_result = subprocess.run(
+                    [pip_cmd, "install", "-e", "."],
+                    cwd=repo_dir,
+                    capture_output=True,
+                    text=True,
+                )
+                if reinstall_result.returncode != 0:
+                    return False, f"❗ Error: pip install failed.\n{reinstall_result.stderr}"
+            except Exception as e:
+                return False, f"❗ Error: Failed to run pip install: {e}"
+
+        # Success!
+        if "Already up to date" in pull_output:
+            return True, "✅ Already up to date. No changes to pull."
+        else:
+            return True, f"✅ Updated successfully!\n{pull_output}"
