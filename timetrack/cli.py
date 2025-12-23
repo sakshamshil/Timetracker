@@ -130,22 +130,32 @@ def export(file_format: str):
 
 @main.command()
 @click.argument("entry_id", type=int)
-def remove(entry_id: int):
-    """Remove a specific log entry by its ID."""
+@click.option(
+    "--when",
+    default="today",
+    help="Date context: 'today', 'yesterday', or 'DD-MM-YYYY'.",
+)
+def remove(entry_id: int, when: str):
+    """Remove a specific log entry by its ID (for a given day)."""
     tracker = TimeTracker()
-    success, message = tracker.remove_entry(entry_id)
+    success, message = tracker.remove_entry(entry_id, when)
     click.echo(message)
 
 
 @main.command()
 @click.argument("entry_id", type=int)
-def edit(entry_id: int):
-    """Interactively edit a time entry."""
+@click.option(
+    "--when",
+    default="today",
+    help="Date context: 'today', 'yesterday', or 'DD-MM-YYYY'.",
+)
+def edit(entry_id: int, when: str):
+    """Interactively edit a time entry (for a given day)."""
     tracker = TimeTracker()
-    entry = tracker.get_entry_by_id(entry_id)
+    entry, error_msg = tracker.get_entry_by_id(entry_id, when)
 
     if not entry:
-        click.echo("❗ Error: Entry not found.", err=True)
+        click.echo(error_msg, err=True)
         return
 
     # Interactively get new values
@@ -155,6 +165,7 @@ def edit(entry_id: int):
 
     success, message = tracker.edit_entry(
         entry_id,
+        day_filter=when,
         new_activity=new_activity,
         new_start_str=new_start_str,
         new_end_str=new_end_str,
@@ -168,6 +179,29 @@ def prev():
     tracker = TimeTracker()
     success, message = tracker.start_previous()
     click.echo(message)
+
+
+@main.command()
+@click.argument("text", required=False)
+@click.option(
+    "--remove", "-r",
+    "remove_id",
+    type=int,
+    help="Remove a memo by its ID.",
+)
+def memo(text: Optional[str], remove_id: Optional[int]):
+    """Manage global memos. Add with TEXT, list without args, remove with --remove ID."""
+    tracker = TimeTracker()
+
+    if remove_id is not None:
+        success, message = tracker.remove_memo(remove_id)
+        click.echo(message)
+    elif text:
+        success, message = tracker.add_memo(text)
+        click.echo(message)
+    else:
+        message = tracker.list_memos()
+        click.echo(message)
 
 
 @main.group()

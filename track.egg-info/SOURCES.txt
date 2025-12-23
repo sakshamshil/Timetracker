@@ -1,8 +1,5 @@
 README.md
 setup.py
-tests/__init__.py
-tests/test_core.py
-tests/test_timetrack.py
 timetrack/__init__.py
 timetrack/cli.py
 timetrack/core.py

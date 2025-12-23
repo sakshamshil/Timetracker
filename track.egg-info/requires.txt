@@ -1,5 +1,5 @@
+click
+openpyxl
 pandas
 pydantic
-openpyxl
-click
 python-dateutil

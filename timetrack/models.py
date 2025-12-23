@@ -65,3 +65,27 @@ class Config(BaseModel):
     """
 
     aliases: Dict[str, str] = Field(default_factory=dict)
+
+
+class Memo(BaseModel):
+    """
+    Represents a single global memo/note.
+
+    Args:
+        text (str): The memo content.
+        created_at (datetime): When the memo was created.
+    """
+
+    text: str
+    created_at: datetime
+
+
+class MemoList(BaseModel):
+    """
+    Represents the memos file (memos.json).
+
+    Args:
+        memos (List[Memo]): A list of global memos.
+    """
+
+    memos: List[Memo] = Field(default_factory=list)

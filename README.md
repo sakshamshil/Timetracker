@@ -343,7 +343,88 @@ track alias [COMMAND]
 
 ---
 
-#### 12. Export All Data
+#### 12. Start the Previous Task
+Quickly restart the last task you logged without typing the full name.
+
+**Usage:**
+```bash
+track prev
+```
+> **Output:**
+> `🟢 Started tracking: 'Team meeting'`
+
+---
+
+#### 13. Backdate a Task
+If you just finished a task but forgot to track it, use `backdate` to quickly log it by specifying how long you spent. The end time is set to "now" and the start time is calculated automatically.
+
+**Usage:**
+```bash
+track backdate <DURATION> "<ACTIVITY>"
+```
+
+**Duration Format:**
+-   `1h` (1 hour)
+-   `30m` (30 minutes)
+-   `2h15m` (2 hours and 15 minutes)
+
+**Example:**
+```bash
+track backdate 2h "Team meeting"
+```
+> **Output:**
+> `✅ Logged 'Team meeting' for 2h 0m.`
+
+---
+
+#### 14. Global Memos
+Unlike task notes (which are tied to a running task), memos are standalone notes you can add anytime. Use them for quick reminders, TODOs, or anything you want to jot down.
+
+**Usage:**
+```bash
+# Add a memo
+track memo "<TEXT>"
+
+# List all memos
+track memo
+
+# Remove a memo by ID
+track memo --remove <ID>
+```
+
+**Examples:**
+
+**1. Add a memo:**
+```bash
+track memo "Fix bug in timelogger"
+```
+> **Output:**
+> `✅ Memo added.`
+
+**2. List all memos:**
+```bash
+track memo
+```
+> **Output:**
+> ```
+> --- Memos ---
+> ID    Created              Note
+> ----------------------------------------------------------------------
+> 0     2025-12-23 15:30     Fix bug in timelogger
+> 1     2025-12-23 16:00     Review PR #42
+> ----------------------------------------------------------------------
+> ```
+
+**3. Remove a memo:**
+```bash
+track memo --remove 0
+```
+> **Output:**
+> `✅ Memo removed: 'Fix bug in timelogger'`
+
+---
+
+#### 15. Export All Data
 To export your entire time log history to a file, use the `export` command. The exported file will include a `notes` column where multiple notes are separated by newlines.
 
 **Usage:**
@@ -366,4 +447,6 @@ track export --format csv
 -   **Log Data:** The application stores its data in the `~/.timetrack` directory.
     -   `timelog.json`: A persistent log of all your completed time entries.
     -   `state.json`: A temporary file that only exists when a task is actively being tracked or paused.
+    -   `config.json`: Stores your task aliases.
+    -   `memos.json`: Stores your global memos.
 -   **Exported Files:** All exported files are saved in the `project/exports/` directory within the project folder.

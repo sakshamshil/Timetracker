@@ -5,10 +5,10 @@ import json
 import re
 from datetime import datetime, timedelta, date
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import pandas as pd  # type: ignore
-from .models import ApplicationState, TimeEntry, TimeLog, Config
+from .models import ApplicationState, TimeEntry, TimeLog, Config, Memo, MemoList
 from dateutil.parser import parse  # type: ignore
 
 # =================================
@@ -18,6 +18,7 @@ DATA_DIR = Path.home() / ".timetrack"
 STATE_FILE = DATA_DIR / "state.json"
 LOG_FILE = DATA_DIR / "timelog.json"
 CONFIG_FILE = DATA_DIR / "config.json"
+MEMOS_FILE = DATA_DIR / "memos.json"
 
 
 class TimeTracker:
@@ -75,6 +76,55 @@ class TimeTracker:
         """Writes the time log to the log file."""
         log.entries.sort(key=lambda x: x.start_time)
         LOG_FILE.write_text(log.model_dump_json(indent=4))
+
+    def _parse_day_filter(self, day_filter: str) -> Optional[date]:
+        """
+        Parses a day filter string into a date object.
+
+        Args:
+            day_filter: 'today', 'yesterday', or 'DD-MM-YYYY'.
+
+        Returns:
+            A date object or None if parsing fails.
+        """
+        try:
+            if day_filter == "today":
+                return date.today()
+            elif day_filter == "yesterday":
+                return date.today() - timedelta(days=1)
+            else:
+                return datetime.strptime(day_filter, "%d-%m-%Y").date()
+        except ValueError:
+            return None
+
+    def _get_entries_for_day(self, day_filter: str) -> Tuple[List[TimeEntry], Optional[date]]:
+        """
+        Gets all entries for a specific day, sorted by start time.
+
+        Args:
+            day_filter: 'today', 'yesterday', or 'DD-MM-YYYY'.
+
+        Returns:
+            A tuple of (list of entries for that day, target date).
+            Returns ([], None) if date parsing fails.
+        """
+        target_date = self._parse_day_filter(day_filter)
+        if target_date is None:
+            return [], None
+
+        log = self._read_log()
+        target_date_str = target_date.strftime("%Y-%m-%d")
+
+        entries_for_day = sorted(
+            [
+                e
+                for e in log.entries
+                if e.start_time.strftime("%Y-%m-%d") == target_date_str
+            ],
+            key=lambda x: x.start_time,
+        )
+
+        return entries_for_day, target_date
 
     def start(self, activity: str, force: bool = False) -> Tuple[bool, str]:
         """
@@ -253,7 +303,13 @@ class TimeTracker:
 
         output = []
         if state.status == "paused":
-            elapsed_seconds = state.total_paused_seconds
+            # Calculate active time: time from start to pause, minus any previous pauses
+            if state.pause_start_time:
+                elapsed_seconds = (
+                    state.pause_start_time - state.start_time
+                ).total_seconds() - state.total_paused_seconds
+            else:
+                elapsed_seconds = 0
             elapsed_minutes = round(elapsed_seconds / 60)
             output.append(
                 f"⏸️ Paused Task: '{state.activity}' ({elapsed_minutes} minutes logged)"
@@ -389,60 +445,76 @@ class TimeTracker:
 
         return True, f"✅ Successfully exported all data to {output_path}"
 
-    def remove_entry(self, entry_id: int) -> Tuple[bool, str]:
+    def remove_entry(self, entry_id: int, day_filter: str = "today") -> Tuple[bool, str]:
         """
-        Removes a specific entry from the log by its ID.
+        Removes a specific entry from the log by its day-specific ID.
 
         Args:
-            entry_id (int): The ID of the entry to remove.
+            entry_id (int): The day-specific ID of the entry to remove.
+            day_filter (str): 'today', 'yesterday', or 'DD-MM-YYYY'.
 
         Returns:
             A tuple containing a success flag and a message.
         """
-        log = self._read_log()
-        if not (0 <= entry_id < len(log.entries)):
-            return False, f"❗ Invalid ID: {entry_id}."
+        entries_for_day, target_date = self._get_entries_for_day(day_filter)
 
-        entry_to_remove = log.entries.pop(entry_id)
+        if target_date is None:
+            return False, "❗ Error: Invalid date format. Please use DD-MM-YYYY."
+
+        if not entries_for_day:
+            return False, f"❗ No entries found for {target_date.strftime('%Y-%m-%d')}."
+
+        if not (0 <= entry_id < len(entries_for_day)):
+            return False, f"❗ Invalid ID: {entry_id}. Valid IDs for {target_date.strftime('%Y-%m-%d')}: 0-{len(entries_for_day) - 1}."
+
+        entry_to_remove = entries_for_day[entry_id]
+
+        # Find and remove from the full log by matching start_time
+        log = self._read_log()
+        log.entries = [e for e in log.entries if e.start_time != entry_to_remove.start_time]
         self._write_log(log)
 
         return True, f"✅ Removed entry: '{entry_to_remove.activity}'"
 
-    def get_entry_by_id(self, entry_id: int) -> Optional[TimeEntry]:
+    def get_entry_by_id(
+        self, entry_id: int, day_filter: str = "today"
+    ) -> Tuple[Optional[TimeEntry], str]:
         """
-        Gets a specific entry from the log by its index.
+        Gets a specific entry from the log by its day-specific ID.
 
         Args:
-            entry_id (int): The ID (index) of the entry to retrieve.
+            entry_id (int): The day-specific ID of the entry to retrieve.
+            day_filter (str): 'today', 'yesterday', or 'DD-MM-YYYY'.
 
         Returns:
-            A TimeEntry object or None if not found.
+            A tuple of (TimeEntry or None, error message).
         """
-        log = self._read_log()
-        if not (0 <= entry_id < len(log.entries)):
-            return None
+        entries_for_day, target_date = self._get_entries_for_day(day_filter)
 
-        return log.entries[entry_id]
+        if target_date is None:
+            return None, "❗ Error: Invalid date format. Please use DD-MM-YYYY."
+
+        if not entries_for_day:
+            return None, f"❗ No entries found for {target_date.strftime('%Y-%m-%d')}."
+
+        if not (0 <= entry_id < len(entries_for_day)):
+            return None, f"❗ Invalid ID: {entry_id}. Valid IDs for {target_date.strftime('%Y-%m-%d')}: 0-{len(entries_for_day) - 1}."
+
+        return entries_for_day[entry_id], ""
 
     def edit_entry(
         self,
         entry_id: int,
+        day_filter: str = "today",
         new_activity: Optional[str] = None,
         new_start_str: Optional[str] = None,
         new_end_str: Optional[str] = None,
     ) -> Tuple[bool, str]:
-        """Edits an existing time entry."""
-        log = self._read_log()
-        original_entry = self.get_entry_by_id(entry_id)
+        """Edits an existing time entry by its day-specific ID."""
+        original_entry, error_msg = self.get_entry_by_id(entry_id, day_filter)
 
         if not original_entry:
-            return False, "❗ Error: Entry not found."
-
-        # Find the index of the original entry in the full log
-        try:
-            original_index = log.entries.index(original_entry)
-        except ValueError:
-            return False, "❗ Error: Could not locate entry in the main log."
+            return False, error_msg
 
         # Use new values if provided, otherwise keep original values
         activity = new_activity if new_activity is not None else original_entry.activity
@@ -475,8 +547,13 @@ class TimeTracker:
             notes=original_entry.notes,  # Preserve original notes
         )
 
-        # Replace the old entry with the updated one
-        log.entries[original_index] = updated_entry
+        # Find and replace in the full log by matching original start_time
+        log = self._read_log()
+        for i, entry in enumerate(log.entries):
+            if entry.start_time == original_entry.start_time:
+                log.entries[i] = updated_entry
+                break
+
         self._write_log(log)
 
         return True, f"✅ Entry {entry_id} updated."
@@ -679,3 +756,86 @@ class TimeTracker:
             output.append(f"{alias} -> {activity}")
 
         return "\n".join(output)
+
+    def _read_memos(self) -> MemoList:
+        """Reads and validates the memos file."""
+        if not MEMOS_FILE.exists():
+            return MemoList()
+        try:
+            memos_data = json.loads(MEMOS_FILE.read_text())
+            return MemoList.model_validate(memos_data)
+        except (json.JSONDecodeError, ValueError):
+            return MemoList()
+
+    def _write_memos(self, memos: MemoList):
+        """Writes the memos to the memos file."""
+        MEMOS_FILE.write_text(memos.model_dump_json(indent=4))
+
+    def add_memo(self, text: str) -> Tuple[bool, str]:
+        """
+        Adds a new global memo.
+
+        Args:
+            text (str): The memo content.
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        memo = Memo(text=text, created_at=datetime.now())
+        memos = self._read_memos()
+        memos.memos.append(memo)
+        self._write_memos(memos)
+
+        return True, "✅ Memo added."
+
+    def list_memos(self) -> str:
+        """
+        Lists all global memos.
+
+        Returns:
+            A formatted string of all memos.
+        """
+        memos = self._read_memos()
+        if not memos.memos:
+            return "No memos found."
+
+        output = ["--- Memos ---"]
+        output.append(
+            "{:<5} {:<20} {}".format("ID", "Created", "Note")
+        )
+        output.append("-" * 70)
+
+        for i, memo in enumerate(memos.memos):
+            created_str = memo.created_at.strftime("%Y-%m-%d %H:%M")
+            # Truncate long memos for display
+            display_text = memo.text[:45] + "..." if len(memo.text) > 45 else memo.text
+            output.append(f"{i:<5} {created_str:<20} {display_text}")
+
+        output.append("-" * 70)
+
+        return "\n".join(output)
+
+    def remove_memo(self, memo_id: int) -> Tuple[bool, str]:
+        """
+        Removes a memo by its ID.
+
+        Args:
+            memo_id (int): The ID of the memo to remove.
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        memos = self._read_memos()
+
+        if not memos.memos:
+            return False, "❗ No memos found."
+
+        if not (0 <= memo_id < len(memos.memos)):
+            return False, f"❗ Invalid ID: {memo_id}. Valid IDs: 0-{len(memos.memos) - 1}."
+
+        removed_memo = memos.memos.pop(memo_id)
+        self._write_memos(memos)
+
+        # Truncate for display
+        display_text = removed_memo.text[:30] + "..." if len(removed_memo.text) > 30 else removed_memo.text
+        return True, f"✅ Memo removed: '{display_text}'"
