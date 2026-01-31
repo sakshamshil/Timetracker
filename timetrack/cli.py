@@ -129,6 +129,27 @@ def export(file_format: str):
 
 
 @main.command()
+@click.option(
+    "--format",
+    "report_format",
+    default="text",
+    type=click.Choice(["text", "html"]),
+    help="Report format: 'text' for terminal charts, 'html' for browser report.",
+)
+@click.option(
+    "--days",
+    default=7,
+    type=int,
+    help="Number of days to include in the report (default: 7 for text, 30 for html).",
+)
+def report(report_format: str, days: int):
+    """Generate a time tracking report with charts."""
+    tracker = TimeTracker()
+    success, message = tracker.report(format=report_format, days=days)
+    click.echo(message)
+
+
+@main.command()
 @click.argument("entry_id", type=int)
 @click.option(
     "--when",
@@ -184,7 +205,8 @@ def prev():
 @main.command()
 @click.argument("text", required=False)
 @click.option(
-    "--remove", "-r",
+    "--remove",
+    "-r",
     "remove_id",
     type=int,
     help="Remove a memo by its ID.",
