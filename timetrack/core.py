@@ -306,6 +306,8 @@ class TimeTracker:
             return "⚪ No task is currently running."
 
         output = []
+        # Truncate activity name for display
+        activity_display = self._truncate_text(state.activity, 50)
         if state.status == "paused":
             # Calculate active time: time from start to pause, minus any previous pauses
             if state.pause_start_time:
@@ -316,7 +318,7 @@ class TimeTracker:
                 elapsed_seconds = 0
             elapsed_minutes = round(elapsed_seconds / 60)
             output.append(
-                f"⏸️ Paused Task: '{state.activity}' ({elapsed_minutes} minutes logged)"
+                f"⏸️ Paused Task: '{activity_display}' ({elapsed_minutes} minutes logged)"
             )
         else:
             # For running tasks
@@ -326,13 +328,15 @@ class TimeTracker:
             elapsed_minutes = round(elapsed_seconds / 60)
             start_time_str = state.start_time.strftime("%H:%M:%S")
             output.append(
-                f"🟢 Active Task: '{state.activity}' (started at {start_time_str}, {elapsed_minutes} minutes so far)"
+                f"🟢 Active Task: '{activity_display}' (started at {start_time_str}, {elapsed_minutes} minutes so far)"
             )
 
         if state.notes:
             output.append("   Notes:")
             for note in state.notes:
-                output.append(f"     - {note}")
+                # Truncate long notes
+                note_display = self._truncate_text(note, 70)
+                output.append(f"     - {note_display}")
 
         return "\n".join(output)
 
@@ -385,12 +389,16 @@ class TimeTracker:
         total_minutes = 0
         for i, entry in enumerate(entries_for_day):
             duration_str = f"{entry.duration_minutes} min"
+            # Truncate activity name to fit column
+            activity_display = self._truncate_text(entry.activity, 42)
             output.append(
-                f"{i:<5} {entry.start_time.strftime('%H:%M:%S'):<10} {entry.end_time.strftime('%H:%M:%S'):<10} {entry.activity:<45} {duration_str:>10}"
+                f"{i:<5} {entry.start_time.strftime('%H:%M:%S'):<10} {entry.end_time.strftime('%H:%M:%S'):<10} {activity_display:<45} {duration_str:>10}"
             )
             if entry.notes:
                 for note in entry.notes:
-                    output.append(f"      - {note}")
+                    # Truncate long notes
+                    note_display = self._truncate_text(note, 65)
+                    output.append(f"      - {note_display}")
             total_minutes += entry.duration_minutes
 
         output.append("-" * 82)
@@ -617,6 +625,12 @@ class TimeTracker:
             return f"{hours}h {minutes}m"
         return f"{minutes}m"
 
+    def _truncate_text(self, text: str, max_length: int, suffix: str = "...") -> str:
+        """Truncates text to max_length, adding suffix if truncated."""
+        if len(text) <= max_length:
+            return text
+        return text[: max_length - len(suffix)] + suffix
+
     def add_entry(
         self,
         activity: str,
@@ -820,7 +834,7 @@ class TimeTracker:
         for i, memo in enumerate(memos.memos):
             created_str = memo.created_at.strftime("%Y-%m-%d %H:%M")
             # Truncate long memos for display
-            display_text = memo.text[:45] + "..." if len(memo.text) > 45 else memo.text
+            display_text = self._truncate_text(memo.text, 45)
             output.append(f"{i:<5} {created_str:<20} {display_text}")
 
         output.append("-" * 70)
@@ -852,11 +866,7 @@ class TimeTracker:
         self._write_memos(memos)
 
         # Truncate for display
-        display_text = (
-            removed_memo.text[:30] + "..."
-            if len(removed_memo.text) > 30
-            else removed_memo.text
-        )
+        display_text = self._truncate_text(removed_memo.text, 30)
         return True, f"✅ Memo removed: '{display_text}'"
 
     def _check_remote_exists(self, repo_dir: Path) -> Tuple[bool, str]:
