@@ -2,57 +2,58 @@
 
 A fast and simple command-line tool to track the time you spend on different tasks.
 
-## Quick Install
+## Installation
 
-Choose one of these methods:
-
-### Method 1: One-Line Install (Recommended)
-
-This automatically clones the repo and installs everything:
+One-line install (requires Python 3.8+):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sakshamshil/Timetracker/main/install-remote.sh | bash
 ```
 
-### Method 2: PyPI (Easiest for New Users)
+This will:
+- Check for Python 3.8+
+- Install pipx if not present
+- Clone the repo to `~/.timetrack-repo`
+- Install the `track` command globally
 
-Install directly from PyPI (no git clone needed):
+### Requirements
 
+- **OS**: Linux, macOS, or WSL (Windows Subsystem for Linux)
+- **Python**: 3.8 or higher
+- **Tools**: `curl`, `git`, `bash`
+
+### Troubleshooting
+
+**"track: command not found"**
+- Restart your terminal or run: `source ~/.bashrc` (or `~/.zshrc` for zsh)
+
+**Permission errors**
+- Run: `python3 -m pipx ensurepath` then restart terminal
+
+**Behind a corporate proxy**
 ```bash
-pipx install timetrack-cli
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+curl -fsSL https://raw.githubusercontent.com/sakshamshil/Timetracker/main/install-remote.sh | bash
 ```
-
-Or with pip:
-```bash
-pip install timetrack-cli
-```
-
-### Method 3: Manual Installation
-
-1.  **Install `pipx`:**
-    ```bash
-    python3 -m pip install --user pipx
-    python3 -m pipx ensurepath
-    ```
-
-2.  **Clone and install:**
-    ```bash
-    git clone https://github.com/sakshamshil/Timetracker.git ~/.timetrack-repo
-    cd ~/.timetrack-repo
-    pipx install -e .
-    ```
 
 ## Updating
 
-How you update depends on how you installed:
+Run the built-in update command:
 
-| Install Method | Update Command |
-|----------------|----------------|
-| One-line or Manual | `track update` |
-| PyPI (pipx) | `pipx upgrade timetrack-cli` |
-| PyPI (pip) | `pip install --upgrade timetrack-cli` |
+```bash
+track update
+```
 
-The `track update` command pulls the latest code from GitHub and reinstalls automatically.
+This pulls the latest code from GitHub and reinstalls automatically.
+
+## Uninstalling
+
+```bash
+pipx uninstall timetrack-cli  # or track
+rm -rf ~/.timetrack-repo      # remove source code
+rm -rf ~/.timetrack           # remove data files
+```
 
 ## How to Use
 
