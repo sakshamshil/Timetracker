@@ -2,37 +2,57 @@
 
 A fast and simple command-line tool to track the time you spend on different tasks.
 
-## Installation
+## Quick Install
 
-This application is installed using `pipx` to ensure it runs in an isolated environment and is available globally.
+Choose one of these methods:
+
+### Method 1: One-Line Install (Recommended)
+
+This automatically clones the repo and installs everything:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sakshamshil/Timetracker/main/install-remote.sh | bash
+```
+
+### Method 2: PyPI (Easiest for New Users)
+
+Install directly from PyPI (no git clone needed):
+
+```bash
+pipx install timetrack-cli
+```
+
+Or with pip:
+```bash
+pip install timetrack-cli
+```
+
+### Method 3: Manual Installation
 
 1.  **Install `pipx`:**
-    If you don't have `pipx` installed, you can install it with pip:
-
     ```bash
     python3 -m pip install --user pipx
     python3 -m pipx ensurepath
     ```
-    *You may need to restart your terminal after this step.*
 
-2.  **Install the Application:**
-    Navigate to the `project/` directory and run the following command:
-
+2.  **Clone and install:**
     ```bash
-    pipx install --editable .
+    git clone https://github.com/sakshamshil/Timetracker.git ~/.timetrack-repo
+    cd ~/.timetrack-repo
+    pipx install -e .
     ```
 
-This will install the `track` command on your system, allowing you to run it from any directory.
+## Updating
 
-### Updating on Another Machine
+How you update depends on how you installed:
 
-If you've already installed the app on another machine and want to get the latest changes:
+| Install Method | Update Command |
+|----------------|----------------|
+| One-line or Manual | `track update` |
+| PyPI (pipx) | `pipx upgrade timetrack-cli` |
+| PyPI (pip) | `pip install --upgrade timetrack-cli` |
 
-```bash
-track update
-```
-
-This pulls the latest code from GitHub and reinstalls automatically. See [Update the Application](#15-update-the-application) for details.
+The `track update` command pulls the latest code from GitHub and reinstalls automatically.
 
 ## How to Use
 

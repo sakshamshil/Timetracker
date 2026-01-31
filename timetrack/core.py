@@ -99,7 +99,9 @@ class TimeTracker:
         except ValueError:
             return None
 
-    def _get_entries_for_day(self, day_filter: str) -> Tuple[List[TimeEntry], Optional[date]]:
+    def _get_entries_for_day(
+        self, day_filter: str
+    ) -> Tuple[List[TimeEntry], Optional[date]]:
         """
         Gets all entries for a specific day, sorted by start time.
 
@@ -447,7 +449,9 @@ class TimeTracker:
 
         return True, f"✅ Successfully exported all data to {output_path}"
 
-    def remove_entry(self, entry_id: int, day_filter: str = "today") -> Tuple[bool, str]:
+    def remove_entry(
+        self, entry_id: int, day_filter: str = "today"
+    ) -> Tuple[bool, str]:
         """
         Removes a specific entry from the log by its day-specific ID.
 
@@ -467,13 +471,18 @@ class TimeTracker:
             return False, f"❗ No entries found for {target_date.strftime('%Y-%m-%d')}."
 
         if not (0 <= entry_id < len(entries_for_day)):
-            return False, f"❗ Invalid ID: {entry_id}. Valid IDs for {target_date.strftime('%Y-%m-%d')}: 0-{len(entries_for_day) - 1}."
+            return (
+                False,
+                f"❗ Invalid ID: {entry_id}. Valid IDs for {target_date.strftime('%Y-%m-%d')}: 0-{len(entries_for_day) - 1}.",
+            )
 
         entry_to_remove = entries_for_day[entry_id]
 
         # Find and remove from the full log by matching start_time
         log = self._read_log()
-        log.entries = [e for e in log.entries if e.start_time != entry_to_remove.start_time]
+        log.entries = [
+            e for e in log.entries if e.start_time != entry_to_remove.start_time
+        ]
         self._write_log(log)
 
         return True, f"✅ Removed entry: '{entry_to_remove.activity}'"
@@ -500,7 +509,10 @@ class TimeTracker:
             return None, f"❗ No entries found for {target_date.strftime('%Y-%m-%d')}."
 
         if not (0 <= entry_id < len(entries_for_day)):
-            return None, f"❗ Invalid ID: {entry_id}. Valid IDs for {target_date.strftime('%Y-%m-%d')}: 0-{len(entries_for_day) - 1}."
+            return (
+                None,
+                f"❗ Invalid ID: {entry_id}. Valid IDs for {target_date.strftime('%Y-%m-%d')}: 0-{len(entries_for_day) - 1}.",
+            )
 
         return entries_for_day[entry_id], ""
 
@@ -802,9 +814,7 @@ class TimeTracker:
             return "No memos found."
 
         output = ["--- Memos ---"]
-        output.append(
-            "{:<5} {:<20} {}".format("ID", "Created", "Note")
-        )
+        output.append("{:<5} {:<20} {}".format("ID", "Created", "Note"))
         output.append("-" * 70)
 
         for i, memo in enumerate(memos.memos):
@@ -833,14 +843,88 @@ class TimeTracker:
             return False, "❗ No memos found."
 
         if not (0 <= memo_id < len(memos.memos)):
-            return False, f"❗ Invalid ID: {memo_id}. Valid IDs: 0-{len(memos.memos) - 1}."
+            return (
+                False,
+                f"❗ Invalid ID: {memo_id}. Valid IDs: 0-{len(memos.memos) - 1}.",
+            )
 
         removed_memo = memos.memos.pop(memo_id)
         self._write_memos(memos)
 
         # Truncate for display
-        display_text = removed_memo.text[:30] + "..." if len(removed_memo.text) > 30 else removed_memo.text
+        display_text = (
+            removed_memo.text[:30] + "..."
+            if len(removed_memo.text) > 30
+            else removed_memo.text
+        )
         return True, f"✅ Memo removed: '{display_text}'"
+
+    def _check_remote_exists(self, repo_dir: Path) -> Tuple[bool, str]:
+        """Check if git remote 'origin' exists."""
+        try:
+            result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+            )
+            return result.returncode == 0, result.stdout.strip()
+        except Exception:
+            return False, ""
+
+    def _add_remote(self, repo_dir: Path, remote_url: str) -> Tuple[bool, str]:
+        """Add git remote 'origin'."""
+        try:
+            result = subprocess.run(
+                ["git", "remote", "add", "origin", remote_url],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                return True, "✅ Added remote origin."
+            return False, f"❗ Failed to add remote: {result.stderr}"
+        except Exception as e:
+            return False, f"❗ Error adding remote: {e}"
+
+    def _detect_installation_method(self) -> str:
+        """Detect how track was originally installed."""
+        # Check if installed via pipx
+        try:
+            result = subprocess.run(
+                ["pipx", "list"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0 and "timetrack-cli" in result.stdout:
+                return "pipx"
+            if result.returncode == 0 and "track" in result.stdout:
+                return "pipx"
+        except Exception:
+            pass
+
+        # Check if installed via pip (editable)
+        try:
+            pip_cmd = shutil.which("pip3") or shutil.which("pip")
+            if pip_cmd:
+                result = subprocess.run(
+                    [pip_cmd, "show", "timetrack-cli"],
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode == 0:
+                    # Check if it's an editable install
+                    if "Editable project location" in result.stdout:
+                        return "pip-editable"
+                    return "pip"
+        except Exception:
+            pass
+
+        # Default to pipx if available
+        if shutil.which("pipx"):
+            return "pipx"
+
+        return "pip"
 
     def update(self) -> Tuple[bool, str]:
         """
@@ -856,12 +940,37 @@ class TimeTracker:
 
         # Step 2: Verify git is installed
         if not shutil.which("git"):
-            return False, "❗ Error: git is not installed or not in PATH."
+            # Offer alternative: pip install upgrade
+            pip_cmd = shutil.which("pip3") or shutil.which("pip")
+            if pip_cmd:
+                try:
+                    result = subprocess.run(
+                        [pip_cmd, "install", "--upgrade", "timetrack-cli"],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        return (
+                            True,
+                            "✅ Updated via pip (PyPI). Run 'track --version' to verify.",
+                        )
+                except Exception:
+                    pass
+            return (
+                False,
+                "❗ Error: git is not installed or not in PATH.\nFor PyPI installs, run: pip install --upgrade timetrack-cli",
+            )
 
         # Step 3: Verify this is a git repository
         git_dir = repo_dir / ".git"
         if not git_dir.exists():
-            return False, f"❗ Error: Not a git repository at {repo_dir}"
+            # This is likely a PyPI install, suggest pip upgrade
+            return (
+                False,
+                "❗ This appears to be a PyPI installation (not a git clone).\n"
+                "To update, run: pip install --upgrade timetrack-cli\n"
+                "Or reinstall with: pipx reinstall timetrack-cli",
+            )
 
         # Step 4: Check for uncommitted changes that might cause conflicts
         try:
@@ -872,14 +981,31 @@ class TimeTracker:
                 text=True,
             )
             if status_result.returncode != 0:
-                return False, f"❗ Error: Failed to check git status.\n{status_result.stderr}"
+                return (
+                    False,
+                    f"❗ Error: Failed to check git status.\n{status_result.stderr}",
+                )
 
             if status_result.stdout.strip():
-                return False, "❗ Error: You have uncommitted changes. Please commit or stash them first."
+                return (
+                    False,
+                    "❗ Error: You have uncommitted changes. Please commit or stash them first.",
+                )
         except Exception as e:
             return False, f"❗ Error: Failed to run git status: {e}"
 
-        # Step 5: Pull latest changes
+        # Step 5: Check if remote exists, add if missing
+        remote_exists, remote_url = self._check_remote_exists(repo_dir)
+        if not remote_exists:
+            default_remote = "https://github.com/sakshamshil/Timetracker.git"
+            success, msg = self._add_remote(repo_dir, default_remote)
+            if not success:
+                return (
+                    False,
+                    f"❗ No git remote configured and failed to add default.\n{msg}",
+                )
+
+        # Step 6: Pull latest changes
         try:
             pull_result = subprocess.run(
                 ["git", "pull", "origin", "main"],
@@ -894,24 +1020,38 @@ class TimeTracker:
         except Exception as e:
             return False, f"❗ Error: Failed to run git pull: {e}"
 
-        # Step 6: Reinstall with pipx (preferred) or pip
-        if shutil.which("pipx"):
+        # Step 7: Detect installation method and reinstall appropriately
+        install_method = self._detect_installation_method()
+
+        if install_method == "pipx":
+            # Try both package names
             try:
+                # First try timetrack-cli (PyPI name)
                 reinstall_result = subprocess.run(
-                    ["pipx", "reinstall", "track"],
+                    ["pipx", "reinstall", "timetrack-cli"],
                     cwd=repo_dir,
                     capture_output=True,
                     text=True,
                 )
                 if reinstall_result.returncode != 0:
-                    return False, f"❗ Error: pipx reinstall failed.\n{reinstall_result.stderr}"
+                    # Fallback to local editable install
+                    reinstall_result = subprocess.run(
+                        ["pipx", "install", "-e", ".", "--force"],
+                        cwd=repo_dir,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if reinstall_result.returncode != 0:
+                        return (
+                            False,
+                            f"❗ Error: pipx reinstall failed.\n{reinstall_result.stderr}",
+                        )
             except Exception as e:
                 return False, f"❗ Error: Failed to run pipx reinstall: {e}"
-        else:
-            # Fallback to pip
+        elif install_method in ["pip", "pip-editable"]:
             pip_cmd = shutil.which("pip3") or shutil.which("pip")
             if not pip_cmd:
-                return False, "❗ Error: Neither pipx nor pip found in PATH."
+                return False, "❗ Error: pip not found in PATH."
 
             try:
                 reinstall_result = subprocess.run(
@@ -921,9 +1061,17 @@ class TimeTracker:
                     text=True,
                 )
                 if reinstall_result.returncode != 0:
-                    return False, f"❗ Error: pip install failed.\n{reinstall_result.stderr}"
+                    return (
+                        False,
+                        f"❗ Error: pip install failed.\n{reinstall_result.stderr}",
+                    )
             except Exception as e:
                 return False, f"❗ Error: Failed to run pip install: {e}"
+        else:
+            return (
+                False,
+                "❗ Error: Could not detect installation method.\nTry: pipx install -e . or pip install -e .",
+            )
 
         # Success!
         if "Already up to date" in pull_output:

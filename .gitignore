@@ -6,3 +6,11 @@ __pycache__
 .idea
 tests/
 .venv/
+
+# Local development files
+AGENTS.md
+publish-to-pypi.sh
+
+# Data files
+.timetrack/
+exports/
