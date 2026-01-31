@@ -16,6 +16,8 @@ This will:
 - Clone the repo to `~/.timetrack-repo`
 - Install the `track` command globally
 
+**Also available on PyPI**: https://test.pypi.org/project/timetrack-cli/
+
 ### Requirements
 
 - **OS**: Linux, macOS, or WSL (Windows Subsystem for Linux)
