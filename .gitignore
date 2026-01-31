@@ -4,7 +4,6 @@ __pycache__
 .ruff_cache
 .pytest_cache
 .idea
-tests/
 .venv/
 
 # Local development files
