@@ -445,33 +445,17 @@ class TimeTracker:
         """
         return self._reports.generate_text_report(days)
 
-    def generate_html_report(self, days: int = 30) -> Tuple[bool, str]:
-        """
-        Generate an HTML report with charts.
-
-        Args:
-            days: Number of days to include in the report.
-
-        Returns:
-            A tuple containing a success flag and a message.
-        """
-        success, message = self._reports.generate_html_report(days)
-        if success:
-            return True, f"✅ {message}"
-        return False, message
-
-    def report(self, format: str = "text", days: int = 7) -> Tuple[bool, str]:
+    def report(self, days: int = 7) -> Tuple[bool, str]:
         """
         Generate a time tracking report.
 
         Args:
-            format: Report format ('text' or 'html').
             days: Number of days to include.
 
         Returns:
             A tuple containing a success flag and a message.
         """
-        return self._reports.report(format, days)
+        return self._reports.report(days)
 
     # =================================
     # UPDATE (delegated to UpdateManager)

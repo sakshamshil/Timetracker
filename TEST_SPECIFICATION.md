@@ -207,28 +207,21 @@ Total time for {date}: 1h 0m
 ---
 
 ### 1.11 `report` Command
-**Purpose**: Generate time tracking report with charts
+**Purpose**: Generate time tracking report with terminal charts
 
 **Options**:
-- `--format` (default="text", choices=["text", "html"]): Report format
-- `--days` (default=7 for text, 30 for html, type=int): Number of days
+- `--days` (default=7, type=int): Number of days to include
 
 **Text Report Output**:
 - ASCII bar charts for daily hours
 - Activity breakdown with bar charts
 - Summary statistics (total, average, days tracked, activities)
 
-**HTML Report Output**:
-- Chart.js bar chart for daily hours
-- Doughnut chart for top 10 activities
-- Statistics cards
-- Saved to: `{project_dir}/reports/timetrack_report_{timestamp}.html`
-
 **Edge Cases**:
 - No entries: "No entries found in the log."
 - No entries in date range: "No entries found in the last {days} days."
 
-**Success Output**: "✅ {report_text}" or "✅ Report generated: {path}"
+**Success Output**: "✅ {report_text}"
 **Error Output**: Error message without emoji prefix
 
 ---
@@ -685,14 +678,6 @@ files are left behind, and the original is preserved if the write fails.
 - Calculates statistics (total, average, days, activities)
 - Returns formatted string
 
-#### `generate_html_report(days: int = 30) -> Tuple[bool, str]`
-- Same data collection as text report
-- Generates HTML with Chart.js
-- Creates bar chart for daily hours
-- Creates doughnut chart for top 10 activities
-- Includes statistics cards
-- Saves to reports/ directory with timestamp
-
 #### `export_log(file_format: str) -> Tuple[bool, str]`
 - Reads log
 - Returns error if no entries
@@ -712,10 +697,9 @@ files are left behind, and the original is preserved if the write fails.
   "Unsupported format: {fmt}" for anything else
 - Success: "Successfully exported all memos to {path}"
 
-#### `report(format: str = "text", days: int = 7) -> Tuple[bool, str]`
-- Delegates to text or HTML report generator
-- HTML default: 30 days
-- Text default: 7 days (or passed value)
+#### `report(days: int = 7) -> Tuple[bool, str]`
+- Delegates to the text report generator
+- Default: 7 days (or passed value)
 
 ---
 
@@ -794,8 +778,7 @@ files are left behind, and the original is preserved if the write fails.
 **Report/Export Methods**:
 - `export_log(file_format)`: Delegates to ReportManager
 - `generate_text_report(days)`: Delegates to ReportManager
-- `generate_html_report(days)`: Delegates to ReportManager
-- `report(format, days)`: Delegates to ReportManager
+- `report(days)`: Delegates to ReportManager
 
 **Update Method**:
 - `update()`: Delegates to UpdateManager
@@ -910,9 +893,7 @@ files are left behind, and the original is preserved if the write fails.
 **Files**: `timetrack_export_{timestamp}.csv` or `.xlsx`
 
 ### 4.7 Reports Directory
-**Path**: `{project_dir}/reports/`
-**Created**: On HTML report generation with `mkdir(parents=True, exist_ok=True)`
-**Files**: `timetrack_report_{timestamp}.html`
+No HTML report directory is created. Reports are rendered as text directly to the terminal via `track report`.
 
 ---
 
@@ -1098,7 +1079,7 @@ Paused -> Stop -> Logged (with pause_start_time as end)
 3. **Entry Manager**: Add/edit/remove/backdate/get operations
 4. **Alias Manager**: Resolve/add/remove/list operations
 5. **Memo Manager**: Add/remove/list operations
-6. **Report Manager**: Text/HTML generation, export
+6. **Report Manager**: Text report generation, CSV/XLSX export
 7. **Update Manager**: Git operations, installation detection
 8. **Utils**: Parse functions, formatting, truncation
 9. **Models**: Validation, serialization
@@ -1162,7 +1143,6 @@ Paused -> Stop -> Logged (with pause_start_time as end)
 
 ### Output Directories:
 - `{project_dir}/exports/` - CSV/XLSX exports
-- `{project_dir}/reports/` - HTML reports
 
 ---
 

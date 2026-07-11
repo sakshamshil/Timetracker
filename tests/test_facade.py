@@ -287,7 +287,7 @@ class TestReportIntegration:
         )
 
         # Generate report
-        success, message = tracker.report(format="text", days=7)
+        success, message = tracker.report(days=7)
 
         assert success is True
         assert "Time Report" in message

@@ -560,19 +560,6 @@ class TestReportManager:
         assert "Days tracked" in result
         assert "Activities" in result
 
-    def test_html_report_empty(self, report_manager):
-        success, message = report_manager.generate_html_report()
-
-        assert success is False
-        assert "No entries found" in message
-
-    def test_html_report_with_data(self, report_manager, sample_entries_multiday):
-        success, message = report_manager.generate_html_report(days=7)
-
-        assert success is True
-        assert "Report generated" in message
-        assert ".html" in message
-
     def test_export_log_empty(self, report_manager):
         success, message = report_manager.export_log("csv")
 
@@ -600,16 +587,10 @@ class TestReportManager:
         assert "Unsupported format" in message
 
     def test_report_text_format(self, report_manager, sample_entries_multiday):
-        success, message = report_manager.report(format="text", days=7)
+        success, message = report_manager.report(days=7)
 
         assert success is True
         assert "Time Report" in message
-
-    def test_report_html_format(self, report_manager, sample_entries_multiday):
-        success, message = report_manager.report(format="html", days=7)
-
-        assert success is True
-        assert "Report generated" in message
 
     def test_export_memos_empty(self, report_manager):
         success, message = report_manager.export_memos("csv")
