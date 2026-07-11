@@ -573,6 +573,65 @@ track export --format csv
 
 ---
 
+#### 17. Generate the Dashboard (local)
+
+Build the self-contained dashboard HTML locally without deploying it. Useful
+for previewing or designing the page. The file inlines all CSS/JS (no CDN),
+so it opens from anywhere offline.
+
+**Usage:**
+```bash
+track dashboard [--days N] [--out DIR]
+```
+- `--days` (default 30): number of trailing days to include.
+- `--out` (default `~/.timetrack/dashboard`): output directory.
+
+**Example:**
+```bash
+track dashboard --days 14 --out ./preview
+```
+> **Output:**
+> `✅ Dashboard written to ./preview/index.html`
+
+---
+
+#### 18. Sync / Deploy the Dashboard
+
+Deploy your dashboard to a static host so you can view "how your days went"
+from any device. The first run launches an interactive setup wizard that asks
+for your host (Vercel), token, project name, an optional custom domain, and
+whether to protect the data with a passphrase (optional, not mandatory). After
+that, every run re-deploys to the **same project → same URL, updated in place**.
+
+**Usage:**
+```bash
+track sync [--install-cron]
+```
+- `--install-cron`: also install a daily scheduled job (launchd on macOS,
+  crontab on Linux) so the dashboard refreshes automatically.
+
+**First run (wizard):**
+```bash
+track sync
+```
+> `Set up remote dashboard — deploy your time review to a static host.`
+> `Host: vercel (only backend in this version)`
+> `✅ Sync configuration saved.`
+> `✅ Dashboard live at: https://track-dash.vercel.app`
+
+**Later runs:**
+```bash
+track sync
+```
+> `✅ Dashboard live at: https://track-dash.vercel.app`
+
+**Privacy:** if you choose passphrase protection during setup, the dashboard
+data is AES-GCM encrypted before it leaves your machine; the host only serves
+ciphertext, and you type the passphrase in the browser to view it. Without it,
+the data is plaintext (protected only by URL obscurity).
+
+---
+
 ### Data and Export Files
 
 -   **Log Data:** The application stores its data in the `~/.timetrack` directory.

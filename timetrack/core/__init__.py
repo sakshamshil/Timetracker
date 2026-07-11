@@ -11,6 +11,9 @@ This package contains the refactored core logic, organized as follows:
 - tasks.py: TaskManager for task lifecycle (start/stop/pause/resume)
 - entries.py: EntryManager for log entry management
 - reports.py: ReportManager for reports and exports
+- dashboard.py: DashboardManager for self-contained HTML dashboard
+- deploy.py: DeployBackend (Vercel) for publishing the dashboard
+- cron.py: scheduled-job installer (launchd/crontab)
 - updater.py: UpdateManager for self-update functionality
 - facade.py: TimeTracker facade that delegates to all managers
 

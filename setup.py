@@ -21,6 +21,7 @@ setup(
         "openpyxl>=3.0.0",
         "click>=8.0.0",
         "python-dateutil>=2.8.0",
+        "cryptography>=41.0.0",
     ],
     extras_require={
         "dev": [

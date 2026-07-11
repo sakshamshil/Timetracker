@@ -198,6 +198,86 @@ def report(days: int):
 
 
 @main.command()
+@click.option(
+    "--days",
+    default=30,
+    type=int,
+    help="Number of days to include in the dashboard.",
+)
+@click.option(
+    "--out",
+    "out_dir",
+    default=None,
+    help="Output directory (default: ~/.timetrack/dashboard).",
+)
+def dashboard(days: int, out_dir: Optional[str]):
+    """Generate the dashboard HTML locally (no deploy)."""
+    tracker = TimeTracker()
+    success, message = tracker.generate_dashboard(out_dir, days)
+    click.echo(message)
+
+
+@main.command()
+@click.option(
+    "--install-cron",
+    is_flag=True,
+    help="Also install a daily scheduled job to sync automatically.",
+)
+def sync(install_cron: bool):
+    """Deploy your dashboard so you can view it from anywhere."""
+    tracker = TimeTracker()
+    if not tracker.get_sync_config().configured:
+        _run_sync_wizard(tracker)
+    if install_cron:
+        ok, msg = tracker.install_cron()
+        click.echo(msg)
+    success, message = tracker.sync()
+    click.echo(message)
+
+
+def _run_sync_wizard(tracker: "TimeTracker") -> None:
+    """Interactive first-run setup for `track sync`."""
+    click.echo("Set up remote dashboard — deploy your time review to a static host.")
+    if not click.confirm("Continue?", default=True):
+        click.echo("Aborted. Run `track sync` again when ready.")
+        raise SystemExit(0)
+
+    host = "vercel"
+    click.echo(f"Host: {host} (only backend in this version)")
+
+    token = click.prompt(
+        "Vercel token (run `vercel login`, or paste a VERCEL_TOKEN)",
+        default="",
+        show_default=False,
+    ).strip()
+    project = click.prompt("Project name", default="track-dash").strip()
+    domain = click.prompt(
+        "Custom domain? (optional, e.g. track.yourdomain.com)",
+        default="",
+        show_default=False,
+    ).strip()
+    protect = click.confirm(
+        "Protect with a passphrase? (optional, not mandatory)", default=False
+    )
+    passphrase = None
+    if protect:
+        passphrase = click.prompt(
+            "Passphrase", hide_input=True, confirmation_prompt=True
+        )
+
+    tracker.configure_sync(
+        configured=True,
+        host=host,
+        token=token or None,
+        project=project or "track-dash",
+        domain=domain or None,
+        passphrase_protected=protect,
+        passphrase=passphrase,
+    )
+    click.echo("✅ Sync configuration saved.")
+
+
+@main.command()
 @click.argument("entry_id", type=int)
 @click.option(
     "--when",

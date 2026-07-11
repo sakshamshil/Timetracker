@@ -13,3 +13,8 @@ publish-to-pypi.sh
 # Data files
 .timetrack/
 exports/
+
+# Build artifacts
+build/
+*.egg-info/
+.DS_Store

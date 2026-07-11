@@ -403,6 +403,46 @@ ID    Created              Note
 
 ---
 
+### 1.18 `dashboard` Command
+**Purpose**: Generate the dashboard HTML locally (no deploy)
+
+**Options**:
+- `--days` (default=30, type=int): Number of trailing days to include.
+- `--out` (default=`~/.timetrack/dashboard`): Output directory.
+
+**Output**: Self-contained `index.html` (inline CSS/JS, no CDN). On success:
+`✅ Dashboard written to <path>`.
+
+---
+
+### 1.19 `sync` Command
+**Purpose**: Deploy the dashboard to a static host for viewing from anywhere
+
+**Options**:
+- `--install-cron` (flag): Also install a daily scheduled job (launchd on macOS, crontab on Linux).
+
+**First run**: launches an interactive wizard:
+- Confirms setup.
+- Host: `vercel` (only backend in v1).
+- Vercel token (from `vercel login` or pasted `VERCEL_TOKEN`).
+- Project name (default `track-dash`).
+- Optional custom domain (e.g. `track.yourdomain.com`).
+- Optional passphrase protection (choice, not mandatory).
+- Saves config (`config.json` → `sync`), then deploys.
+
+**Later runs**: non-interactive; re-deploys to the same project → same URL.
+
+**Success Output**: `✅ Dashboard live at: <url>`
+**Not configured**: `❗ Sync is not set up. Run \`track sync\` to configure it first.`
+**Deploy failure**: `❗ Deploy failed: <error>`
+
+**Privacy**: with passphrase protection, data is AES-GCM encrypted client-side
+(PBKDF2-HMAC-SHA256, 100k iterations, 256-bit key, 12-byte IV) before writing;
+the browser decrypts after prompting for the passphrase. The host serves only
+ciphertext.
+
+---
+
 ## 2. CORE MODULES AND METHODS
 
 ### 2.1 Storage Module (`storage.py`)
@@ -780,6 +820,13 @@ files are left behind, and the original is preserved if the write fails.
 - `generate_text_report(days)`: Delegates to ReportManager
 - `report(days)`: Delegates to ReportManager
 
+**Dashboard & Sync Methods**:
+- `get_sync_config() -> SyncConfig`: Returns current sync config.
+- `configure_sync(**changes) -> (bool, str)`: Persists sync config fields.
+- `generate_dashboard(out_dir, days) -> (bool, str)`: Generates local `index.html` (uses stored passphrase when `passphrase_protected`).
+- `sync() -> (bool, str)`: Generates then deploys via the configured backend; stable URL.
+- `install_cron() -> (bool, str)`: Installs daily scheduled job (launchd/crontab).
+
 **Update Method**:
 - `update()`: Delegates to UpdateManager
 
@@ -879,7 +926,19 @@ files are left behind, and the original is preserved if the write fails.
 **Path**: `~/.timetrack/config.json`
 **Format**: JSON serialization of Config
 **Created**: On first alias add
-**Modified**: On alias add, remove
+**Modified**: On alias add, remove, or `track sync` setup
+
+**Fields**:
+- `aliases`: Dict[str, str]
+- `sync`: SyncConfig block:
+  - `configured` (bool): wizard completed.
+  - `host` (str): deploy backend (v1: `vercel`).
+  - `project` (str): host project name (`track-dash`).
+  - `domain` (Optional[str]): custom domain.
+  - `token` (Optional[str]): host API token (local only).
+  - `passphrase_protected` (bool): whether data is encrypted.
+  - `passphrase` (Optional[str]): stored locally so cron can re-encrypt.
+  - `cron_installed` (bool): daily job installed.
 
 ### 4.5 Memos File
 **Path**: `~/.timetrack/memos.json`
@@ -894,6 +953,11 @@ files are left behind, and the original is preserved if the write fails.
 
 ### 4.7 Reports Directory
 No HTML report directory is created. Reports are rendered as text directly to the terminal via `track report`.
+
+### 4.8 Dashboard Directory
+**Path**: `~/.timetrack/dashboard/`
+**Created**: On `track dashboard` or `track sync` (generate step)
+**Files**: `index.html` (self-contained; deployed to the host)
 
 ---
 

@@ -1,10 +1,13 @@
 # project/timetrack/core/facade.py
 """TimeTracker facade - the main entry point for the application."""
 
+from pathlib import Path
 from typing import Optional, Tuple
 
-from ..models import TimeEntry
+from ..models import SyncConfig, TimeEntry
 from .aliases import AliasManager
+from .dashboard import DashboardManager
+from .deploy import get_backend
 from .entries import EntryManager
 from .memos import MemoManager
 from .reports import ReportManager
@@ -36,6 +39,7 @@ class TimeTracker:
         self._aliases = AliasManager(self._storage)
         self._memos = MemoManager(self._storage)
         self._reports = ReportManager(self._storage)
+        self._dashboard = DashboardManager(self._storage)
         self._updater = UpdateManager()
 
     # =================================
@@ -456,6 +460,92 @@ class TimeTracker:
             A tuple containing a success flag and a message.
         """
         return self._reports.report(days)
+
+    # =================================
+    # DASHBOARD & SYNC
+    # =================================
+
+    def get_sync_config(self) -> SyncConfig:
+        """Return the current sync configuration."""
+        return self._storage.read_config().sync
+
+    def configure_sync(self, **changes) -> Tuple[bool, str]:
+        """Persist sync configuration changes.
+
+        Args:
+            **changes: Fields of SyncConfig to update (e.g. host, project,
+                domain, token, passphrase_protected, passphrase).
+
+        Returns:
+            A tuple of (success, message).
+        """
+        config = self._storage.read_config()
+        for key, value in changes.items():
+            if hasattr(config.sync, key):
+                setattr(config.sync, key, value)
+        self._storage.write_config(config)
+        return True, "✅ Sync configuration saved."
+
+    def generate_dashboard(
+        self, out_dir=None, days: int = 30
+    ) -> Tuple[bool, str]:
+        """Generate the dashboard HTML locally (no deploy).
+
+        Args:
+            out_dir: Directory to write into (defaults to the dashboard dir).
+            days: Number of trailing days to include.
+
+        Returns:
+            A tuple of (success, message/path).
+        """
+        from .constants import DASHBOARD_DIR
+
+        target = Path(out_dir) if out_dir else DASHBOARD_DIR
+        sync = self.get_sync_config()
+        passphrase = sync.passphrase if sync.passphrase_protected else None
+        success, message = self._dashboard.generate(target, days, passphrase)
+        if success:
+            return True, f"✅ Dashboard written to {message}"
+        return False, f"❗ {message}"
+
+    def sync(self) -> Tuple[bool, str]:
+        """Generate and deploy the dashboard.
+
+        Returns:
+            A tuple of (success, message/url).
+        """
+        if not self.get_sync_config().configured:
+            return (
+                False,
+                "❗ Sync is not set up. Run `track sync` to configure it first.",
+            )
+
+        gen_ok, gen_msg = self.generate_dashboard()
+        if not gen_ok:
+            return gen_ok, gen_msg
+
+        from .constants import DASHBOARD_DIR
+
+        backend = get_backend(self.get_sync_config())
+        ok, url = backend.deploy(DASHBOARD_DIR, prod=True)
+        if ok:
+            return True, f"✅ Dashboard live at: {url}"
+        return False, f"❗ Deploy failed: {url}"
+
+    def install_cron(self) -> Tuple[bool, str]:
+        """Install a daily scheduled job for `track sync`.
+
+        Returns:
+            A tuple of (success, message).
+        """
+        from . import cron as cron_mod
+
+        ok, message = cron_mod.install()
+        if ok:
+            config = self._storage.read_config()
+            config.sync.cron_installed = True
+            self._storage.write_config(config)
+        return ok, message
 
     # =================================
     # UPDATE (delegated to UpdateManager)

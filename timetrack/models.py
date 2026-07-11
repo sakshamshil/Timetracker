@@ -58,15 +58,42 @@ class TimeLog(BaseModel):
     entries: List[TimeEntry] = Field(default_factory=list)
 
 
+class SyncConfig(BaseModel):
+    """
+    Represents the remote dashboard sync configuration (config.json ``sync``).
+
+    Args:
+        configured (bool): Whether the user has completed the setup wizard.
+        host (str): Deploy backend name (e.g. 'vercel').
+        project (str): Project/name on the host (stable URL segment).
+        domain (Optional[str]): Custom domain to serve the dashboard from.
+        token (Optional[str]): API token for the host (plaintext, local only).
+        passphrase_protected (bool): Whether the dashboard data is encrypted
+            client-side with a passphrase.
+        cron_installed (bool): Whether a scheduled job has been installed.
+    """
+
+    configured: bool = False
+    host: str = "vercel"
+    project: str = "track-dash"
+    domain: Optional[str] = None
+    token: Optional[str] = None
+    passphrase_protected: bool = False
+    passphrase: Optional[str] = None
+    cron_installed: bool = False
+
+
 class Config(BaseModel):
     """
     Represents the configuration file (config.json).
 
     Args:
         aliases (Dict[str, str]): A mapping of alias names to full activity names.
+        sync (SyncConfig): Remote dashboard sync settings.
     """
 
     aliases: Dict[str, str] = Field(default_factory=dict)
+    sync: SyncConfig = Field(default_factory=SyncConfig)
 
 
 class Memo(BaseModel):
