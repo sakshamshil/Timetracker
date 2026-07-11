@@ -1,6 +1,7 @@
 # project/timetrack/core/deploy.py
 """Deployment backends for publishing the dashboard to a static host."""
 
+import re
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
@@ -103,12 +104,13 @@ class VercelBackend(DeployBackend):
 
     @staticmethod
     def _extract_url(out: str) -> Optional[str]:
-        # vercel prints the deployment URL on its own line.
-        for line in out.splitlines():
-            line = line.strip()
-            if line.startswith("http://") or line.startswith("https://"):
-                return line
-        return None
+        # Vercel prints the deployment URL, but its version/telemetry
+        # banner can land on the same (unterminated) line as the URL
+        # (e.g. "...vercel.appVercel CLI 55.0.0..."). The deploy URL
+        # always ends in ".vercel.app", so match up to that boundary;
+        # the caller falls back to the custom domain when absent.
+        match = re.search(r"https://[^\s'\"]*?\.vercel\.app", out)
+        return match.group(0) if match else None
 
 
 def get_backend(config: SyncConfig) -> DeployBackend:

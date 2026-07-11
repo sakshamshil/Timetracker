@@ -420,6 +420,7 @@ ID    Created              Note
 
 **Options**:
 - `--install-cron` (flag): Also install a daily scheduled job (launchd on macOS, crontab on Linux).
+- `--edit` (flag): Re-run setup to edit the existing config. Prompts are prefilled with current values; leaving a field empty keeps its current value (e.g. an existing token).
 
 **Pre-flight**: before any prompts, `track sync` checks the deploy backend is
 ready (e.g. `vercel` CLI installed). If not, it prints a clear

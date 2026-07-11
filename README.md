@@ -605,10 +605,12 @@ that, every run re-deploys to the **same project → same URL, updated in place*
 
 **Usage:**
 ```bash
-track sync [--install-cron]
+track sync [--install-cron] [--edit]
 ```
 - `--install-cron`: also install a daily scheduled job (launchd on macOS,
   crontab on Linux) so the dashboard refreshes automatically.
+- `--edit`: re-run setup to change the existing config (prompts are
+  prefilled with current values; leave a field empty to keep it).
 
 **First run (wizard):**
 ```bash

@@ -223,15 +223,20 @@ def dashboard(days: int, out_dir: Optional[str]):
     is_flag=True,
     help="Also install a daily scheduled job to sync automatically.",
 )
-def sync(install_cron: bool):
+@click.option(
+    "--edit",
+    is_flag=True,
+    help="Re-run setup to edit the existing sync config (prefilled).",
+)
+def sync(install_cron: bool, edit: bool):
     """Deploy your dashboard so you can view it from anywhere."""
     tracker = TimeTracker()
     ok, msg = tracker.check_sync_ready()
     if not ok:
         click.echo(f"❗ {msg}")
         return
-    if not tracker.get_sync_config().configured:
-        _run_sync_wizard(tracker)
+    if edit or not tracker.get_sync_config().configured:
+        _run_sync_wizard(tracker, edit=edit)
     if install_cron:
         ok, msg = tracker.install_cron()
         click.echo(msg)
@@ -239,9 +244,19 @@ def sync(install_cron: bool):
     click.echo(message)
 
 
-def _run_sync_wizard(tracker: "TimeTracker") -> None:
-    """Interactive first-run setup for `track sync`."""
-    click.echo("Set up remote dashboard — deploy your time review to a static host.")
+def _run_sync_wizard(tracker: "TimeTracker", edit: bool = False) -> None:
+    """Interactive setup (or edit) for `track sync`.
+
+    Args:
+        tracker: The TimeTracker instance.
+        edit: When True, prefill prompts from the existing config
+            and keep unchanged values (e.g. an existing token).
+    """
+    cfg = tracker.get_sync_config() if edit else None
+    if edit:
+        click.echo("Editing existing sync config (leave a field empty to keep it).")
+    else:
+        click.echo("Set up remote dashboard — deploy your time review to a static host.")
     if not click.confirm("Continue?", default=True):
         click.echo("Aborted. Run `track sync` again when ready.")
         raise SystemExit(0)
@@ -249,19 +264,26 @@ def _run_sync_wizard(tracker: "TimeTracker") -> None:
     host = "vercel"
     click.echo(f"Host: {host} (only backend in this version)")
 
-    token = click.prompt(
-        "Vercel token (run `vercel login`, or paste a VERCEL_TOKEN)",
-        default="",
-        show_default=False,
+    token_prompt = "Vercel token (run `vercel login`, or paste a VERCEL_TOKEN)"
+    if edit:
+        token_prompt += " — leave empty to keep current"
+    token = click.prompt(token_prompt, default="", show_default=False).strip()
+    if edit and not token and cfg is not None:
+        token = cfg.token
+
+    project = click.prompt(
+        "Project name", default=(cfg.project if cfg else "track-dash")
     ).strip()
-    project = click.prompt("Project name", default="track-dash").strip()
+
     domain = click.prompt(
         "Custom domain? (optional, e.g. track.yourdomain.com)",
-        default="",
+        default=(cfg.domain if cfg else ""),
         show_default=False,
     ).strip()
+
     protect = click.confirm(
-        "Protect with a passphrase? (optional, not mandatory)", default=False
+        "Protect with a passphrase? (optional, not mandatory)",
+        default=(cfg.passphrase_protected if cfg else False),
     )
     passphrase = None
     if protect:

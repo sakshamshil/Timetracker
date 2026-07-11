@@ -70,7 +70,18 @@ def test_vercel_backend_deploy(monkeypatch):
     assert "deploy" in args and "--prod" in args and "--name" in args
 
 
-def test_vercel_backend_deploy_with_domain(monkeypatch):
+def test_vercel_backend_extract_url_clean(monkeypatch):
+    # Vercel may print the deployment URL with its version banner on
+    # the same (unterminated) line; the URL must be extracted cleanly.
+    out = "https://track-dash.vercel.appVercel CLI 55.0.0 (Node.js 24.18.0)"
+    monkeypatch.setattr("timetrack.core.deploy.shutil.which", lambda x: "/usr/bin/vercel")
+    with mock.patch("timetrack.core.deploy.subprocess.run") as run:
+        run.return_value = mock.Mock(returncode=0, stdout=out, stderr="")
+        b = VercelBackend(project="track-dash", token="t", domain=None)
+        ok, url = b.deploy(_FAKE_DIR, prod=True)
+    assert ok
+    assert url == "https://track-dash.vercel.app"
+    assert "Vercel" not in url
     out = "Deployed to https://x.vercel.app\n"
     monkeypatch.setattr("timetrack.core.deploy.shutil.which", lambda x: "/usr/bin/vercel")
     with mock.patch("timetrack.core.deploy.subprocess.run") as run:
@@ -127,6 +138,30 @@ def test_sync_wizard_saves_config(monkeypatch, temp_data_dir, sample_entries):
     t = TimeTracker()
     assert t.get_sync_config().configured is True
     assert t.get_sync_config().passphrase_protected is False
+
+
+def test_sync_edit_keeps_token(monkeypatch, temp_data_dir, sample_entries):
+    _patch_data(monkeypatch, temp_data_dir)
+    t0 = TimeTracker()
+    t0.configure_sync(
+        configured=True, host="vercel", project="old-proj",
+        token="SECRET", domain="a.com", passphrase_protected=False,
+    )
+    monkeypatch.setattr("timetrack.core.deploy.shutil.which", lambda x: "/usr/bin/vercel")
+    with mock.patch("timetrack.core.deploy.subprocess.run") as run:
+        run.return_value = mock.Mock(
+            returncode=0, stdout="https://old-proj.vercel.app\n", stderr=""
+        )
+        runner = CliRunner()
+        # edit: continue=y, token empty (keep), project=new-proj, domain empty (keep), protect=n
+        answers = "\n".join(["y", "", "new-proj", "", "n"]) + "\n"
+        result = runner.invoke(main, ["sync", "--edit"], input=answers)
+    assert result.exit_code == 0
+    assert "live at" in result.output
+    cfg = TimeTracker().get_sync_config()
+    assert cfg.token == "SECRET"        # unchanged (left empty)
+    assert cfg.project == "new-proj"     # changed
+    assert cfg.domain == "a.com"        # unchanged (left empty)
 
 
 def test_sync_preflight_blocks_without_vercel(monkeypatch, temp_data_dir):
