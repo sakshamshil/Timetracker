@@ -2,12 +2,42 @@
 """Storage layer for all file I/O operations."""
 
 import json
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from ..models import ApplicationState, Config, Memo, MemoList, TimeEntry, TimeLog
 from .constants import CONFIG_FILE, DATA_DIR, LOG_FILE, MEMOS_FILE, STATE_FILE
+
+
+def _atomic_write(path: Path, data: str) -> None:
+    """
+    Atomically write text to ``path``.
+
+    Writes to a temporary file in the same directory, flushes it to disk, then
+    atomically replaces the target via ``os.replace``. This ensures the target
+    file is never left half-written if the process is interrupted mid-write:
+    it will contain either the complete old contents or the complete new ones.
+
+    Args:
+        path: The destination file path.
+        data: The text content to write.
+    """
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 class Storage:
@@ -70,7 +100,7 @@ class Storage:
         Args:
             state: The ApplicationState to persist.
         """
-        self.state_file.write_text(state.model_dump_json(indent=4))
+        _atomic_write(self.state_file, state.model_dump_json(indent=4))
 
     def delete_state(self) -> None:
         """Deletes the state file (when a task is stopped)."""
@@ -122,7 +152,7 @@ class Storage:
             log: The TimeLog to persist. Entries are sorted by start_time.
         """
         log.entries.sort(key=lambda x: x.start_time)
-        self.log_file.write_text(log.model_dump_json(indent=4))
+        _atomic_write(self.log_file, log.model_dump_json(indent=4))
 
     # =================================
     # CONFIG OPERATIONS
@@ -150,7 +180,7 @@ class Storage:
         Args:
             config: The Config to persist.
         """
-        self.config_file.write_text(config.model_dump_json(indent=4))
+        _atomic_write(self.config_file, config.model_dump_json(indent=4))
 
     # =================================
     # MEMO OPERATIONS
@@ -178,4 +208,4 @@ class Storage:
         Args:
             memos: The MemoList to persist.
         """
-        self.memos_file.write_text(memos.model_dump_json(indent=4))
+        _atomic_write(self.memos_file, memos.model_dump_json(indent=4))

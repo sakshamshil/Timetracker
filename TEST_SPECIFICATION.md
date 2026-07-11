@@ -408,13 +408,20 @@ ID    Created              Note
 - Creates data directory if it doesn't exist
 - Sets up file paths for state, log, config, memos
 
+**Atomic writes**: All `write_*` methods persist via the module-level
+`_atomic_write(path, data)` helper, which writes to a temp file in the same
+directory (`tempfile.mkstemp`), `flush()` + `os.fsync`, then `os.replace()` onto
+the target. Guarantees the target file is never left half-written on
+interruption (contains either the full old or full new contents); no `.tmp`
+files are left behind, and the original is preserved if the write fails.
+
 **State Operations**:
 - `read_state() -> Optional[ApplicationState]`
   - Returns None if file doesn't exist
   - Returns None on JSON decode error or validation error
   
 - `write_state(state: ApplicationState) -> None`
-  - Writes JSON with indentation
+  - Writes JSON with indentation (atomically, see above)
   
 - `delete_state() -> None`
   - Unlinks file if it exists
@@ -428,7 +435,7 @@ ID    Created              Note
   
 - `write_log(log: TimeLog) -> None`
   - Sorts entries by start_time before writing
-  - Writes JSON with indentation
+  - Writes JSON with indentation (atomically)
 
 **Config Operations**:
 - `read_config() -> Config`
@@ -436,7 +443,7 @@ ID    Created              Note
   - Returns empty Config on JSON/validation errors
   
 - `write_config(config: Config) -> None`
-  - Writes JSON with indentation
+  - Writes JSON with indentation (atomically)
 
 **Memo Operations**:
 - `read_memos() -> MemoList`
@@ -444,7 +451,7 @@ ID    Created              Note
   - Returns empty MemoList on JSON/validation errors
   
 - `write_memos(memos: MemoList) -> None`
-  - Writes JSON with indentation
+  - Writes JSON with indentation (atomically)
 
 ---
 

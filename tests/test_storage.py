@@ -5,7 +5,7 @@ import pytest
 import json
 from datetime import datetime
 
-from timetrack.core.storage import Storage
+from timetrack.core.storage import Storage, _atomic_write
 from timetrack.models import (
     ApplicationState,
     Config,
@@ -240,3 +240,53 @@ class TestMemoOperations:
         result = storage.read_memos()
 
         assert result.memos == []
+
+
+class TestAtomicWrite:
+    """Tests for the _atomic_write helper and its use by Storage writes."""
+
+    def test_creates_file_with_exact_content(self, tmp_path):
+        target = tmp_path / "out.json"
+        _atomic_write(target, '{"a": 1}')
+
+        assert target.read_text() == '{"a": 1}'
+
+    def test_overwrites_existing_content(self, tmp_path):
+        target = tmp_path / "out.json"
+        target.write_text("old contents")
+
+        _atomic_write(target, "new contents")
+
+        assert target.read_text() == "new contents"
+
+    def test_leaves_no_temp_files_behind(self, tmp_path):
+        target = tmp_path / "out.json"
+        _atomic_write(target, "data")
+
+        leftovers = [p.name for p in tmp_path.iterdir() if p.name != "out.json"]
+        assert leftovers == []
+
+    def test_preserves_original_when_write_fails(self, tmp_path, monkeypatch):
+        target = tmp_path / "out.json"
+        target.write_text("original")
+
+        def boom(*args, **kwargs):
+            raise OSError("disk full")
+
+        monkeypatch.setattr("timetrack.core.storage.os.replace", boom)
+
+        with pytest.raises(OSError):
+            _atomic_write(target, "new data")
+
+        assert target.read_text() == "original"
+        leftovers = [p.name for p in tmp_path.iterdir() if p.name != "out.json"]
+        assert leftovers == []
+
+    def test_storage_writes_use_atomic_write(self, storage):
+        storage.write_config(Config(aliases={"w": "work"}))
+
+        assert storage.read_config().aliases == {"w": "work"}
+        leftovers = [
+            p.name for p in storage.data_dir.iterdir() if p.suffix == ".tmp"
+        ]
+        assert leftovers == []

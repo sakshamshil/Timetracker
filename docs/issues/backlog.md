@@ -227,6 +227,34 @@ O(n) rewrite cost is negligible at this scale.
    as a swappable backend, so a future `SQLiteStorage` behind a small interface
    (keeping JSON import/export) is the clean path.
 
+## 7a. Atomic JSON writes (spun off from item 7)
+Make all JSON persistence crash-safe.
+
+### Status
+**✅ Done** — implemented, tested, docs updated.
+
+### Problem
+Every `write_*` in `storage.py` used `Path.write_text`, which truncates the
+target then streams new content. A crash/power-loss/full-disk mid-write could
+corrupt or empty the file — and the file is fully rewritten on every
+add/stop/edit.
+
+### Fix
+- Added `_atomic_write(path, data)` in `storage.py`: writes to a temp file in the
+  same dir (`tempfile.mkstemp`), `flush()` + `os.fsync`, then `os.replace()` onto
+  the target (atomic on POSIX & Windows). Cleans up the temp file and re-raises
+  on failure, leaving the original intact.
+- Routed `write_state`, `write_log`, `write_config`, `write_memos` through it.
+
+### Verification
+- `tests/test_storage.py::TestAtomicWrite` (5): exact content, overwrite, no
+  temp-file leftovers, original preserved when `os.replace` fails, and Storage
+  writes leave no `.tmp` files. All pass.
+- Full suite: 156 passed + 4 pre-existing `test_facade.py` date-parse failures.
+
+### Files touched
+- `timetrack/core/storage.py`, `tests/test_storage.py`, `TEST_SPECIFICATION.md`
+
 ## 8. Add a pause reason
 Add a pause reason when pausing tracking.
 
