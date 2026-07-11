@@ -11,6 +11,15 @@ from timetrack.core.aliases import AliasManager
 from timetrack.core.memos import MemoManager
 from timetrack.core.reports import ReportManager
 
+from pathlib import Path
+
+
+def _cleanup_export(message: str) -> None:
+    """Remove an export file referenced at the end of a success message."""
+    path = Path(message.split()[-1])
+    if path.exists():
+        path.unlink()
+
 
 class TestTaskManager:
     """Tests for TaskManager."""
@@ -601,3 +610,37 @@ class TestReportManager:
 
         assert success is True
         assert "Report generated" in message
+
+    def test_export_memos_empty(self, report_manager):
+        success, message = report_manager.export_memos("csv")
+
+        assert success is False
+        assert "No memos" in message
+
+    def test_export_memos_csv(self, report_manager, memo_manager):
+        memo_manager.add("Remember this")
+
+        success, message = report_manager.export_memos("csv")
+
+        assert success is True
+        assert "exported all memos" in message
+        assert ".csv" in message
+        _cleanup_export(message)
+
+    def test_export_memos_xlsx(self, report_manager, memo_manager):
+        memo_manager.add("Remember this")
+
+        success, message = report_manager.export_memos("xlsx")
+
+        assert success is True
+        assert "exported all memos" in message
+        assert ".xlsx" in message
+        _cleanup_export(message)
+
+    def test_export_memos_invalid_format(self, report_manager, memo_manager):
+        memo_manager.add("Remember this")
+
+        success, message = report_manager.export_memos("pdf")
+
+        assert success is False
+        assert "Unsupported format" in message

@@ -296,11 +296,19 @@ Total time for {date}: 1h 0m
 
 **Options**:
 - `-r` / `--remove` (type=int): Remove memo by ID
+- `-e` / `--export` (Choice: csv|xlsx): Export all memos to a file
 
-**Modes**:
-1. **Add mode** (text provided): Adds new memo
-2. **List mode** (no args): Lists all memos
-3. **Remove mode** (--remove): Removes memo by ID
+**Modes** (precedence: export > remove > add > list):
+1. **Export mode** (--export): Exports all memos (see 2.6 `export_memos`)
+2. **Remove mode** (--remove): Removes memo by ID
+3. **Add mode** (text provided): Adds new memo
+4. **List mode** (no args): Lists all memos
+
+**Export Output**:
+- Success: "✅ Successfully exported all memos to {path}"
+- No memos: "❗ No memos to export."
+- File written to `{project_dir}/exports/timetrack_memos_{timestamp}.{ext}` with
+  columns `text`, `created_at`. Invalid format is rejected by Click's Choice.
 
 **List Output**:
 ```
@@ -694,6 +702,16 @@ files are left behind, and the original is preserved if the write fails.
 - Creates exports/ directory
 - Exports to CSV or XLSX with timestamp
 
+#### `export_memos(file_format: str) -> Tuple[bool, str]`
+- Reads memos
+- Returns "No memos to export." if none
+- Converts memos to dicts (columns: text, created_at)
+- Creates pandas DataFrame
+- Creates exports/ directory
+- Exports to `timetrack_memos_{timestamp}.{ext}` (CSV or XLSX); returns
+  "Unsupported format: {fmt}" for anything else
+- Success: "Successfully exported all memos to {path}"
+
 #### `report(format: str = "text", days: int = 7) -> Tuple[bool, str]`
 - Delegates to text or HTML report generator
 - HTML default: 30 days
@@ -771,6 +789,7 @@ files are left behind, and the original is preserved if the write fails.
 - `add_memo(text)`: Delegates to MemoManager
 - `list_memos()`: Delegates to MemoManager
 - `remove_memo(memo_id)`: Delegates to MemoManager
+- `export_memos(file_format)`: Delegates to ReportManager
 
 **Report/Export Methods**:
 - `export_log(file_format)`: Delegates to ReportManager

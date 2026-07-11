@@ -399,6 +399,21 @@ class TimeTracker:
             return True, f"✅ {message}"
         return False, f"❗ {message}"
 
+    def export_memos(self, file_format: str) -> Tuple[bool, str]:
+        """
+        Exports all global memos to a file.
+
+        Args:
+            file_format: The format to export to (csv or xlsx).
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        success, message = self._reports.export_memos(file_format)
+        if success:
+            return True, f"✅ {message}"
+        return False, f"❗ {message}"
+
     # =================================
     # REPORTS & EXPORT (delegated to ReportManager)
     # =================================

@@ -266,11 +266,25 @@ def prev():
     type=int,
     help="Remove a memo by its ID.",
 )
-def memo(text: Optional[str], remove_id: Optional[int]):
-    """Manage global memos. Add with TEXT, list without args, remove with --remove ID."""
+@click.option(
+    "--export",
+    "-e",
+    "export_format",
+    type=click.Choice(["csv", "xlsx"]),
+    help="Export all memos to a file (csv or xlsx).",
+)
+def memo(
+    text: Optional[str],
+    remove_id: Optional[int],
+    export_format: Optional[str],
+):
+    """Manage global memos. Add with TEXT, list without args, remove with --remove ID, export with --export FORMAT."""
     tracker = TimeTracker()
 
-    if remove_id is not None:
+    if export_format is not None:
+        success, message = tracker.export_memos(export_format)
+        click.echo(message)
+    elif remove_id is not None:
         success, message = tracker.remove_memo(remove_id)
         click.echo(message)
     elif text:

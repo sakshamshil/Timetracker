@@ -463,6 +463,9 @@ track memo
 
 # Remove a memo by ID
 track memo --remove <ID>
+
+# Export all memos to a file (csv or xlsx)
+track memo --export <csv|xlsx>
 ```
 
 **Examples:**
@@ -504,6 +507,17 @@ track memo --remove 0
 ```
 > **Output:**
 > `✅ Memo removed: 'Fix bug in timelogger'`
+
+**4. Export all memos:**
+```bash
+track memo --export csv
+```
+> **Output:**
+> `✅ Successfully exported all memos to .../exports/timetrack_memos_20251223_153000.csv`
+
+The file is written to the `exports/` directory with a timestamped name and
+contains the `text` and `created_at` of every memo. Use `--export xlsx` for an
+Excel file. Exporting with no memos reports `❗ No memos to export.`
 
 ---
 

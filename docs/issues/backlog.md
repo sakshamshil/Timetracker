@@ -290,6 +290,30 @@ the final log entry. Reason is never mandatory.
 ## 9. "Memo Expert" feature
 Add a "Memo Expert" feature.
 
+### Status
+**✅ Done** — interpreted as **"Memo Export"** (user confirmed the title was a
+typo). Implemented, tested, docs updated.
+
+### Implementation
+- `reports.py`: added `export_memos(file_format)` mirroring `export_log` — reads
+  memos, builds a pandas DataFrame (columns `text`, `created_at`), writes
+  `exports/timetrack_memos_{timestamp}.{csv|xlsx}`. Returns "No memos to export."
+  when empty and "Unsupported format" for bad formats.
+- `facade.py`: added `export_memos(file_format)` delegating to ReportManager.
+- `cli.py`: `track memo` gains `-e/--export` (Choice csv|xlsx). Mode precedence:
+  export > remove > add > list.
+
+### Verification
+- New tests in `test_managers.py`: export empty, csv, xlsx, invalid format (4);
+  csv/xlsx tests clean up the generated file. All pass.
+- Manual CLI (isolated HOME): csv/xlsx export succeed with correct content;
+  empty reports the error; invalid format rejected by Click's Choice.
+- Full suite: 165 passed + 4 pre-existing `test_facade.py` date-parse failures.
+
+### Files touched
+- `timetrack/core/reports.py`, `timetrack/core/facade.py`, `timetrack/cli.py`,
+  `tests/test_managers.py`, `README.md`, `TEST_SPECIFICATION.md`
+
 ## 10. Start tracking with a specified start time
 Allow tracking to start with a specified start time.
 

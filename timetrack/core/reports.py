@@ -380,6 +380,45 @@ class ReportManager:
 
         return True, f"Successfully exported all data to {output_path}"
 
+    def export_memos(self, file_format: str) -> Tuple[bool, str]:
+        """
+        Exports all global memos to a file.
+
+        Args:
+            file_format: The format to export to (csv or xlsx).
+
+        Returns:
+            A tuple containing a success flag and a message.
+        """
+        memo_list = self.storage.read_memos()
+        if not memo_list.memos:
+            return False, "No memos to export."
+
+        processed_memos = [memo.model_dump() for memo in memo_list.memos]
+        df = pd.DataFrame(processed_memos)
+
+        # Define the output directory and create it if it doesn't exist
+        project_dir = Path(__file__).parent.parent.parent
+        output_dir = project_dir / "exports"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a timestamp for the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"timetrack_memos_{timestamp}.{file_format}"
+        output_path = output_dir / output_filename
+
+        try:
+            if file_format == "csv":
+                df.to_csv(output_path, index=False)
+            elif file_format == "xlsx":
+                df.to_excel(output_path, index=False, engine="openpyxl")
+            else:
+                return False, f"Unsupported format: {file_format}"
+        except Exception as e:
+            return False, f"An error occurred during export: {e}"
+
+        return True, f"Successfully exported all memos to {output_path}"
+
     def report(self, format: str = "text", days: int = 7) -> Tuple[bool, str]:
         """
         Generate a time tracking report.
