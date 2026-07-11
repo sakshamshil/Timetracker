@@ -102,7 +102,7 @@ track start "Urgent bug fix" --force
 ```
 > **Output:**
 > ```
-> ✅ Stopped tracking 'Developing a new feature'. Logged 30 minutes.
+> ✅ Stopped tracking 'Developing a new feature'. Logged 30m.
 > 🟢 Started tracking: 'Urgent bug fix'
 > ```
 
@@ -116,7 +116,7 @@ When you have finished working on a task, use the `stop` command.
 track stop
 ```
 > **Output:**
-> `✅ Stopped tracking 'Developing a new feature'. Logged 25 minutes.`
+> `✅ Stopped tracking 'Developing a new feature'. Logged 25m.`
 
 ---
 
@@ -170,13 +170,13 @@ track status
 ```
 > **Output (if a task is running with notes):**
 > ```
-> 🟢 Active Task: 'Developing a new feature' (15 minutes so far)
+> 🟢 Active Task: 'Developing a new feature' (15m so far)
 >    Notes:
 >      - Finished the main logic, now writing tests.
 > ```
 >
 > **Output (if a task is paused):**
-> `⏸️ Paused Task: 'Developing a new feature' (20 minutes logged)`
+> `⏸️ Paused Task: 'Developing a new feature' (20m logged)`
 >
 > **Output (if no task is running):**
 > `⚪ No task is currently running.`
@@ -274,11 +274,11 @@ track log yesterday
 > --- Time Log for 2025-07-19 ---
 > ID    Start      End        Activity                                             Duration
 > --------------------------------------------------------------------------------
-> 0     10:30:15   10:55:20   Developing a new feature                               25 min
+> 0     10:30:15   10:55:20   Developing a new feature                                  25m
 >       - Finished the main logic.
-> 1     11:05:00   11:35:30   Team meeting                                           30 min
+> 1     11:05:00   11:35:30   Team meeting                                              30m
 > --------------------------------------------------------------------------------
-> Total time for 2025-07-19: 55 minutes
+> Total time for 2025-07-19: 55m
 > ```
 
 ---
@@ -305,8 +305,8 @@ track log
 > --- Time Log for 2025-07-26 ---
 > ID    Start      End        Activity                  Duration
 > ----------------------------------------------------------------------
-> 0     09:00:00   10:00:00   Team Stand-up             60 min
-> 1     10:15:00   11:00:00   Code Review               45 min
+> 0     09:00:00   10:00:00   Team Stand-up               1h 0m
+> 1     10:15:00   11:00:00   Code Review                   45m
 > ----------------------------------------------------------------------
 > Total time for 2025-07-26: 1h 45m
 > ```
@@ -342,8 +342,8 @@ track log
 > --- Time Log for 2025-09-26 ---
 > ID    Start      End        Activity                  Duration
 > ----------------------------------------------------------------------
-> 0     09:00:00   10:00:00   Team Stand-up             60 min
-> 1     10:15:00   11:00:00   Code Review               45 min
+> 0     09:00:00   10:00:00   Team Stand-up               1h 0m
+> 1     10:15:00   11:00:00   Code Review                   45m
 > ----------------------------------------------------------------------
 > Total time for 2025-09-26: 1h 45m
 > ```

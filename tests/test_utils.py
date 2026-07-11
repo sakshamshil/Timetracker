@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from timetrack.core.utils import (
     parse_duration,
     format_duration,
+    format_minutes,
     truncate_text,
     parse_day_filter,
 )
@@ -76,6 +77,22 @@ class TestFormatDuration:
         duration = timedelta(seconds=90)
         result = format_duration(duration)
         assert result in ["1m", "2m"]
+
+
+class TestFormatMinutes:
+    """Tests for format_minutes function."""
+
+    def test_minutes_only(self):
+        assert format_minutes(45) == "45m"
+
+    def test_hours_and_minutes(self):
+        assert format_minutes(90) == "1h 30m"
+
+    def test_exact_hours(self):
+        assert format_minutes(60) == "1h 0m"
+
+    def test_zero(self):
+        assert format_minutes(0) == "0m"
 
 
 class TestTruncateText:

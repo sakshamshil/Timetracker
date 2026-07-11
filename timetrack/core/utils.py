@@ -46,6 +46,19 @@ def format_duration(duration: timedelta) -> str:
     return f"{minutes}m"
 
 
+def format_minutes(minutes: int) -> str:
+    """
+    Formats an integer number of minutes into a human-readable duration.
+
+    Args:
+        minutes: A whole number of minutes.
+
+    Returns:
+        A formatted string like '1h 30m' or '30m'.
+    """
+    return format_duration(timedelta(minutes=minutes))
+
+
 def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
     """
     Truncates text to max_length, adding suffix if truncated.

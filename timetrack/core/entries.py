@@ -8,7 +8,13 @@ from dateutil.parser import parse  # type: ignore
 
 from ..models import TimeEntry
 from .storage import Storage
-from .utils import format_duration, parse_day_filter, parse_duration, truncate_text
+from .utils import (
+    format_duration,
+    format_minutes,
+    parse_day_filter,
+    parse_duration,
+    truncate_text,
+)
 
 
 class EntryManager:
@@ -107,7 +113,7 @@ class EntryManager:
 
         total_minutes = 0
         for i, entry in enumerate(entries_for_day):
-            duration_str = f"{entry.duration_minutes} min"
+            duration_str = format_minutes(entry.duration_minutes)
             # Truncate activity name to fit column
             activity_display = truncate_text(entry.activity, 42)
             output.append(
@@ -122,11 +128,7 @@ class EntryManager:
 
         output.append("-" * 82)
 
-        hours, remainder_minutes = divmod(total_minutes, 60)
-        if hours > 0:
-            total_str = f"{int(hours)}h {int(remainder_minutes)}m"
-        else:
-            total_str = f"{int(remainder_minutes)} minutes"
+        total_str = format_minutes(total_minutes)
 
         output.append(f"Total time for {target_date_str}: {total_str}")
 

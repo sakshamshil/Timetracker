@@ -261,6 +261,14 @@ class TestEntryManager:
         assert "coding" in result
         assert "meeting" in result
 
+    def test_get_log_durations_use_hour_format(self, entry_manager, sample_entries):
+        result = entry_manager.get_log("today")
+
+        assert " min" not in result
+        assert "1h 0m" in result
+        assert "30m" in result
+        assert "Total time for" in result
+
     def test_get_log_invalid_date(self, entry_manager, sample_entries):
         # Need entries in the log for date validation to occur
         result = entry_manager.get_log("invalid-date")

@@ -135,6 +135,38 @@ truncation served no alignment purpose and hid content.
 ## 4. Log durations in hours / clearer units
 Display log durations in hours instead of minutes (or make the unit clearer).
 
+### Status
+**✅ Done** — implemented, tested (unit + manual CLI), docs updated.
+
+### Problem
+`track log` showed each entry's Duration as raw minutes (`{n} min`, e.g.
+"90 min"), and several task messages said "{n} minutes", while the log total
+already used the clearer "Xh Ym" form — inconsistent and hard to read for long
+durations.
+
+### Fix (scope confirmed with user: log column + task messages)
+- Added `utils.format_minutes(minutes: int)` → wraps `format_duration` so int
+  minutes render as "1h 30m" / "45m" / "0m".
+- `entries.py`: per-entry Duration column and the daily total now use
+  `format_minutes` (removed the ad-hoc "X minutes" branch).
+- `tasks.py`: stop/pause/resume messages and status output (Active/Paused Task)
+  now use `format_minutes` instead of "{n} minutes".
+
+### Verification
+- New unit tests: `test_utils.py::TestFormatMinutes` (4) and
+  `test_managers.py::test_get_log_durations_use_hour_format` (asserts no raw
+  " min", presence of "1h 0m"/"30m"). All pass.
+- Manual CLI (isolated HOME): log shows "1h 30m"/"20m", total "1h 50m"; status
+  "0m so far"; stop "Logged 0m."
+- Full suite: 146 passed + 4 pre-existing `test_facade.py` date-parse failures
+  (unrelated).
+
+### Files touched
+- `timetrack/core/utils.py` (add `format_minutes`)
+- `timetrack/core/entries.py`, `timetrack/core/tasks.py` (use it)
+- `tests/test_utils.py`, `tests/test_managers.py` (tests)
+- `README.md`, `TEST_SPECIFICATION.md` (docs)
+
 ## 5. Command to track emails
 Add a command to track emails.
 

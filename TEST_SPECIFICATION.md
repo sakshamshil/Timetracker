@@ -71,7 +71,7 @@ This document provides a complete inventory of all features, commands, options, 
 - If alias not found: Error "❗ Error: Alias '{alias}' not found."
 
 **Success Output**: "🟢 Started tracking: '{activity}'"
-**Force Stop Output**: "✅ Stopped tracking '{activity}'. Logged {minutes} minutes.\n🟢 Started tracking: '{new_activity}'"
+**Force Stop Output**: "✅ Stopped tracking '{activity}'. Logged {duration}.\n🟢 Started tracking: '{new_activity}'" (duration formatted via `format_minutes`, e.g. "1h 30m" / "45m")
 **Error Output**: "❗ Error: {message}"
 
 ---
@@ -86,7 +86,7 @@ This document provides a complete inventory of all features, commands, options, 
 - Task paused: Calculates duration up to pause time
 - Task running: Calculates duration from start to now, minus paused time
 
-**Success Output**: "✅ Stopped tracking '{activity}'. Logged {minutes} minutes."
+**Success Output**: "✅ Stopped tracking '{activity}'. Logged {duration}." (duration via `format_minutes`, e.g. "1h 0m" / "30m")
 **Error Output**: "❗ {message}"
 
 ---
@@ -101,7 +101,7 @@ This document provides a complete inventory of all features, commands, options, 
 - Task already paused: Error "❗ Task '{activity}' is already paused."
 - Task running: Pauses and calculates active time so far
 
-**Success Output**: "⏸️ Paused '{activity}'. ({minutes} minutes logged so far)."
+**Success Output**: "⏸️ Paused '{activity}'. ({duration} logged so far)." (duration via `format_minutes`)
 **Error Output**: "❗ {message}"
 
 ---
@@ -116,7 +116,7 @@ This document provides a complete inventory of all features, commands, options, 
 - Task already running: Error "❗ Task '{activity}' is already running."
 - Calculates total paused time and adds to `total_paused_seconds`
 
-**Success Output**: "🟢 Resumed tracking: '{activity}'. ({minutes} minutes already logged)."
+**Success Output**: "🟢 Resumed tracking: '{activity}'. ({duration} already logged)." (duration via `format_minutes`)
 **Error Output**: "❗ {message}"
 
 ---
@@ -128,8 +128,8 @@ This document provides a complete inventory of all features, commands, options, 
 
 **Output Scenarios**:
 1. No task running: "⚪ No task is currently running."
-2. Task paused: "⏸️ Paused Task: '{activity}' ({minutes} minutes logged)"
-3. Task running: "🟢 Active Task: '{activity}' (started at {time}, {minutes} minutes so far)"
+2. Task paused: "⏸️ Paused Task: '{activity}' ({duration} logged)" (duration via `format_minutes`)
+3. Task running: "🟢 Active Task: '{activity}' (started at {time}, {duration} so far)" (duration via `format_minutes`)
 4. With notes: Displays list of notes under the task
 
 **Note Display**:
@@ -163,7 +163,7 @@ This document provides a complete inventory of all features, commands, options, 
 --- Time Log for {date} ---
 ID    Start      End        Activity                                       Duration
 ----------------------------------------------------------------------------------
-0     09:00:00   10:00:00   Meeting                                        60 min
+0     09:00:00   10:00:00   Meeting                                           1h 0m
       - Note content
 ----------------------------------------------------------------------------------
 Total time for {date}: 1h 0m
@@ -178,7 +178,8 @@ Total time for {date}: 1h 0m
 - Shows day-specific IDs (0, 1, 2...)
 - Truncates activity names to 42 characters
 - Truncates notes to 65 characters
-- Shows total time in hours/minutes format
+- Per-entry Duration and the total use `format_minutes` (e.g. "1h 30m" / "45m");
+  no raw "{n} min" values
 - Sorts entries by start time
 
 ---
@@ -782,6 +783,11 @@ ID    Created              Note
 #### `format_duration(duration: timedelta) -> str`
 - Converts to total minutes
 - Returns "Xh Ym" or "Ym" format
+
+#### `format_minutes(minutes: int) -> str`
+- Convenience wrapper: `format_duration(timedelta(minutes=minutes))`
+- Returns "Xh Ym" (when >= 60) or "Ym" (e.g. 90 -> "1h 30m", 45 -> "45m", 0 -> "0m")
+- Used for user-facing durations in `track log` and task status/stop/pause/resume messages
 
 #### `truncate_text(text: str, max_length: int, suffix: str = "...") -> str`
 - Returns original if <= max_length

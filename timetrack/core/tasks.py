@@ -6,7 +6,7 @@ from typing import Tuple
 
 from ..models import ApplicationState, TimeEntry
 from .storage import Storage
-from .utils import truncate_text
+from .utils import format_minutes, truncate_text
 
 
 class TaskManager:
@@ -99,7 +99,7 @@ class TaskManager:
         self.storage.delete_state()
         return (
             True,
-            f"Stopped tracking '{log_entry.activity}'. Logged {duration_minutes} minutes.",
+            f"Stopped tracking '{log_entry.activity}'. Logged {format_minutes(duration_minutes)}.",
         )
 
     def pause(self) -> Tuple[bool, str]:
@@ -129,7 +129,7 @@ class TaskManager:
 
         return (
             True,
-            f"Paused '{state.activity}'. ({active_minutes} minutes logged so far).",
+            f"Paused '{state.activity}'. ({format_minutes(active_minutes)} logged so far).",
         )
 
     def resume(self) -> Tuple[bool, str]:
@@ -164,7 +164,7 @@ class TaskManager:
 
         return (
             True,
-            f"Resumed tracking: '{state.activity}'. ({active_minutes} minutes already logged).",
+            f"Resumed tracking: '{state.activity}'. ({format_minutes(active_minutes)} already logged).",
         )
 
     def status(self) -> str:
@@ -191,7 +191,7 @@ class TaskManager:
                 elapsed_seconds = 0
             elapsed_minutes = round(elapsed_seconds / 60)
             output.append(
-                f"Paused Task: '{activity_display}' ({elapsed_minutes} minutes logged)"
+                f"Paused Task: '{activity_display}' ({format_minutes(elapsed_minutes)} logged)"
             )
         else:
             # For running tasks
@@ -201,7 +201,7 @@ class TaskManager:
             elapsed_minutes = round(elapsed_seconds / 60)
             start_time_str = state.start_time.strftime("%H:%M:%S")
             output.append(
-                f"Active Task: '{activity_display}' (started at {start_time_str}, {elapsed_minutes} minutes so far)"
+                f"Active Task: '{activity_display}' (started at {start_time_str}, {format_minutes(elapsed_minutes)} so far)"
             )
 
         if state.notes:
