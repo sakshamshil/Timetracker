@@ -170,8 +170,18 @@ durations.
 ## 5. Command to track emails
 Add a command to track emails.
 
+### Status
+**⏭️ Skipped** — reason: requirement is too vague (original author unsure of
+intent). Unclear whether it means a shortcut to start/log time on an "Email"
+activity vs. counting emails processed. Revisit when the desired behavior is
+defined.
+
 ## 6. Command to track sync operations
 Add a command to track sync operations.
+
+### Status
+**⏭️ Skipped** — reason: too vague (same ambiguity as item 5). Revisit when the
+desired behavior is defined.
 
 ## 7. Consider SQLite instead of JSON storage
 Consider using SQLite instead of JSON for storage.
