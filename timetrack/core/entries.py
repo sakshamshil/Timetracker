@@ -370,6 +370,29 @@ class EntryManager:
 
         return True, f"Entry {entry_id} updated."
 
+    def validate_start_time(self, start_str: str) -> Optional[str]:
+        """
+        Validates a start time string without creating an entry.
+
+        Args:
+            start_str: The start time string to validate.
+
+        Returns:
+            An error message string if invalid, or None if valid.
+        """
+        today_str = date.today().strftime("%Y-%m-%d")
+        yesterday_str = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        candidate = (
+            start_str.lower()
+            .replace("today", today_str)
+            .replace("yesterday", yesterday_str)
+        )
+        try:
+            parse(candidate, dayfirst=True)
+        except ValueError:
+            return "Invalid start time format."
+        return None
+
     def get_last_activity(self) -> Optional[str]:
         """
         Gets the activity name of the last logged entry.

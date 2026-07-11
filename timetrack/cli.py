@@ -13,19 +13,33 @@ def main():
 
 
 @main.command()
-@click.argument("activity")
+@click.argument("activity", required=False)
 @click.option(
     "--start",
     "start_str",
-    required=True,
+    required=False,
     help="Start time (e.g., 'today 10am', '25-07-2025 14:00').",
 )
 @click.option("--end", "end_str", help="End time (e.g., 'today 11am').")
 @click.option("--for", "duration_str", help="Duration (e.g., '1h', '30m').")
 def add(
-    activity: str, start_str: str, end_str: Optional[str], duration_str: Optional[str]
+    activity: Optional[str],
+    start_str: Optional[str],
+    end_str: Optional[str],
+    duration_str: Optional[str],
 ):
-    """Add a completed time entry retrospectively."""
+    """Add a completed time entry retrospectively.
+
+    Run with no arguments for an interactive "easy mode" that prompts for
+    the activity, start time, and either an end time or a duration.
+    """
+    if not start_str:
+        run_easy_mode(activity)
+        return
+
+    if activity is None:
+        click.echo("❗ Error: You must provide an activity name.", err=True)
+        return
     if not (end_str or duration_str):
         click.echo("❗ Error: You must provide either --end or --for.", err=True)
         return
@@ -36,6 +50,46 @@ def add(
     tracker = TimeTracker()
     success, message = tracker.add_entry(activity, start_str, end_str, duration_str)
     click.echo(message)
+
+
+def run_easy_mode(initial_activity: Optional[str] = None) -> None:
+    """Interactive guide for adding a time entry.
+
+    Prompts for the activity (unless already provided), the start time, and
+    then either an end time or a duration. Saves directly on success.
+    """
+    tracker = TimeTracker()
+
+    activity = initial_activity
+    if not activity:
+        last = tracker.get_last_activity()
+        activity = click.prompt("Activity name", default=last if last else "")
+    while not activity or not activity.strip():
+        click.echo("❗ Error: Activity name cannot be empty.", err=True)
+        activity = click.prompt("Activity name", default="")
+
+    # Collect time fields, re-prompting on validation failure.
+    while True:
+        start_str = click.prompt("Start time (e.g. 'today 10am', 'yesterday 3pm')")
+        start_error = tracker.validate_start_time(start_str)
+        if start_error:
+            click.echo(f"❗ Error: {start_error}", err=True)
+            continue
+
+        end_str = click.prompt(
+            "End time (leave blank to use a duration)", default=""
+        )
+        duration_str: Optional[str] = None
+        if not end_str.strip():
+            duration_str = click.prompt("Duration (e.g. '1h', '30m', '1h30m')")
+
+        success, message = tracker.add_entry(
+            activity, start_str, end_str or None, duration_str
+        )
+        click.echo(message)
+        if success:
+            return
+        # On failure (end/duration), loop and re-collect the time fields.
 
 
 @main.command()

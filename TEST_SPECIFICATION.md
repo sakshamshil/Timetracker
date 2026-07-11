@@ -31,6 +31,16 @@ This document provides a complete inventory of all features, commands, options, 
 **Success Output**: "✅ Logged '{activity}' for {duration}."
 **Error Output**: "❗ Error: {message}"
 
+**Interactive Easy Mode**:
+- Triggered when `track add` is invoked with **no arguments** (and no `--start`).
+- Prompts interactively (using `click.prompt`) for:
+  1. Activity name (default = last logged activity via `get_last_activity()`; empty input is re-prompted with "Activity name cannot be empty.")
+  2. Start time (re-prompted on "Invalid start time format.")
+  3. End time, OR a duration if the end-time prompt is left blank (mutually exclusive, mirroring the flag-based rule).
+- Saves directly on success (no confirmation step).
+- Backward compatible: `track add "<activity>" --start ... [--end|--for]` still works non-interactively. If `--start` is omitted but an activity is provided, easy mode is used for the time prompts.
+- If `activity` is supplied positionally, the activity prompt is skipped.
+
 ---
 
 ### 1.2 `backdate` Command

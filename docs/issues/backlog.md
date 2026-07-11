@@ -1,0 +1,122 @@
+# Issues / Feature Backlog
+
+This file tracks planned work. Items are picked off one-by-one (replicate →
+debug → fix). Nothing here is being worked on until explicitly selected.
+
+---
+
+## 1. Interactive "easy mode" for adding tasks
+Add an interactive "easy mode" for adding tasks.
+
+### Status
+**✅ Done** — implemented, tested (unit + manual CLI), docs updated.
+
+### Outcome / verification
+- `tests/test_easy_mode.py` added: 6 tests (end-time path, duration path,
+  invalid-start re-prompt, empty-activity re-prompt, preset activity,
+  non-interactive backward compat). **All pass.**
+- Full suite: 150 passed, 4 **pre-existing** failures in `test_facade.py`
+  (date-parsing/`today`/`yesterday` handling + report) — confirmed failing on
+  the unmodified code too, **not** caused by this change. Tracked separately
+  (see note below).
+- Manual smoke test via the installed `track` binary (isolated temp HOME):
+  `track add` with no args guides through activity → start → end/duration and
+  logs correctly; `track log` shows the entries with correct durations.
+- CLI tests isolate storage by monkeypatching `timetrack.core.constants` **and**
+  `timetrack.core.storage` module-level paths (Storage imports them by value),
+  so the real `~/.timetrack` is never touched.
+
+> **Note (separate bug, out of scope for item 1):** `EntryManager.add` swaps
+> `today`/`yesterday` substitution into `YYYY-MM-DD` then `dateutil.parse(...,
+> dayfirst=True)` produces wrong months (e.g. "today 10am" → month 10). This
+> breaks `test_facade.py` report/entry tests and affects manual use. Recommend
+> a dedicated fix (likely drop `dayfirst` for ISO-style substituted strings or
+> parse `today`/`yesterday` as `date` objects).
+
+### Clarification (confirmed with user)
+- **Trigger:** No-arg `track add` launches the interactive prompts.
+- **Fields prompted:** Activity name, Start time, and End time OR duration (notes excluded).
+- **Confirmation:** Save directly after collecting inputs (no yes/no confirm step).
+
+### Replication (current behavior)
+- `add` is defined in `timetrack/cli.py:25`. It takes a **required** positional
+  `activity` and a **required** `--start` option, plus optional `--end`/`--for`
+  (mutually exclusive).
+- Invoking `track add` with no args currently **fails** at the Click layer
+  (missing required argument `ACTIVITY` and required option `--start`), so there
+  is no interactive path today.
+- The actual work is delegated `cli.py:37` → `TimeTracker.add_entry`
+  (`core/facade.py:187`) → `EntryManager.add` (`core/entries.py:135`), which
+  already parses start/end/duration and validates `end > start`.
+
+### Findings / edge cases to handle ("debug")
+1. `activity` and `--start` must become **optional** so the command can run
+   with zero args and fall into easy mode. Must keep backward compatibility:
+   `track add "X" --start ...` still works non-interactively.
+2. Need a clean rule for when easy mode triggers: enter interactive mode when
+   `--start` is NOT supplied (with or without an activity argument). If
+   `activity` is already given, skip the activity prompt.
+3. Within easy mode, prompt for start time, then ask the user to choose
+   **end time** vs **duration** (mirror the mutual-exclusion rule in
+   `EntryManager.add`). Re-prompt on invalid input rather than failing silently.
+4. Reuse the existing `EntryManager.add` / `TimeTracker.add_entry` for the final
+   save — do not duplicate parsing/validation logic.
+5. Optional nicety: offer the last logged activity as the default for the
+   activity prompt (via `EntryManager.get_last_activity`).
+6. Docs/tests: update `README.md` (add a new "Easy Mode" subsection under the
+   `add` command) and `TEST_SPECIFICATION.md` (1.1 add-mode / 2.3 new helper).
+
+### Plan / implementation steps
+1. **`timetrack/cli.py`** — make `activity` optional (`required=False`) and
+   `--start` optional (`required=False`). At the top of `add()`, detect easy
+   mode: `if not start_str:` → run a new helper `run_easy_mode(activity)`.
+2. **`timetrack/cli.py`** — add `run_easy_mode(initial_activity=None)` that uses
+   `click.prompt` to collect: activity (default = last activity if available),
+   start time, then a choice of end/duration, then calls `tracker.add_entry(...)`.
+   Loop on validation errors returned by `add_entry`.
+3. **`core/facade.py` / `core/entries.py`** — no signature changes needed;
+   easy mode reuses `add_entry`. (Optionally expose `get_last_activity` already
+   present in `EntryManager`.)
+4. **Tests** — add to `tests/test_managers.py` or a new `test_easy_mode.py`:
+   simulate prompts with `click.testing.CliRunner` + `input=`; assert a log
+   entry is created and invalid input is re-prompted. Use `temp_data_dir`
+   fixture (never real `~/.timetrack`).
+5. **Docs** — update `README.md` and `TEST_SPECIFICATION.md` for the easy-mode
+   flow and its outputs.
+6. **Verify** — `pytest` and a manual `track add` (no args) smoke test.
+
+### Files touched
+- `timetrack/cli.py` (modify `add`, add `run_easy_mode`)
+- `tests/` (add easy-mode tests)
+- `README.md`, `TEST_SPECIFICATION.md` (docs)
+
+## 2. Improve the update tracking feature
+Improve the update tracking feature.
+
+## 3. Fix memo display truncation
+Fix the memo display so longer text isn't cut off.
+
+## 4. Log durations in hours / clearer units
+Display log durations in hours instead of minutes (or make the unit clearer).
+
+## 5. Command to track emails
+Add a command to track emails.
+
+## 6. Command to track sync operations
+Add a command to track sync operations.
+
+## 7. Consider SQLite instead of JSON storage
+Consider using SQLite instead of JSON for storage.
+
+## 8. Add a pause reason
+Add a pause reason when pausing tracking.
+
+## 9. "Memo Expert" feature
+Add a "Memo Expert" feature.
+
+## 10. Start tracking with a specified start time
+Allow tracking to start with a specified start time.
+
+---
+
+_Added: 2026-07-11 — source: pasted backlog list._

@@ -226,6 +226,31 @@ track add "Design review" --start "yesterday 10:00" --end "yesterday 11:30"
 track add "Client call" --start "22-07-2025 15:00" --for "45m"
 ```
 
+**Interactive Easy Mode**
+
+Run `track add` with no arguments to be guided through adding an entry. It
+prompts for the activity name (offering the last logged activity as the
+default), the start time, and then either an end time or a duration. Invalid
+input is re-prompted, and the entry is saved directly once valid.
+
+```bash
+track add
+```
+> **Output:**
+> ```
+> Activity name []: Client call
+> Start time (e.g. 'today 10am', 'yesterday 3pm'): 22-07-2025 15:00
+> End time (leave blank to use a duration) []:
+> Duration (e.g. '1h', '30m', '1h30m'): 45m
+> ✅ Logged 'Client call' for 45m.
+> ```
+
+You can also pass the activity up front and be prompted only for the times:
+
+```bash
+track add "Client call"
+```
+
 ---
 
 #### 8. View Time Logs

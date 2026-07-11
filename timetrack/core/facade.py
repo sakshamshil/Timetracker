@@ -156,6 +156,27 @@ class TimeTracker:
             return True, f"✅ {message}"
         return False, f"⚪ {message}"
 
+    def validate_start_time(self, start_str: str) -> Optional[str]:
+        """
+        Validates a start time string without creating an entry.
+
+        Args:
+            start_str: The start time string to validate.
+
+        Returns:
+            An error message string if invalid, or None if valid.
+        """
+        return self._entries.validate_start_time(start_str)
+
+    def get_last_activity(self) -> Optional[str]:
+        """
+        Gets the activity name of the last logged entry (or None).
+
+        Returns:
+            The activity name, or None if no entries exist.
+        """
+        return self._entries.get_last_activity()
+
     def start_previous(self) -> Tuple[bool, str]:
         """
         Starts a new task with the same name as the last logged entry.
