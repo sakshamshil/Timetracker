@@ -186,6 +186,47 @@ desired behavior is defined.
 ## 7. Consider SQLite instead of JSON storage
 Consider using SQLite instead of JSON for storage.
 
+### Status
+**💬 Discussion / decision recorded** — no migration now (per user: open for
+discussion, not to be migrated asap).
+
+### Current design
+- 4 JSON files (`state.json`, `timelog.json`, `config.json`, `memos.json`).
+- Every op does a full read → mutate → full rewrite; `write_log` re-sorts and
+  rewrites the whole log on each append (`storage.py:124`).
+- Writes use `Path.write_text` (`storage.py:73,125,153,181`) — **not atomic**;
+  a crash mid-write can corrupt a file.
+- Day filters and reports load everything and filter in Python.
+
+### Scale reality
+Personal time tracker: ~thousands of entries/year (~a few MB at 10k entries).
+O(n) rewrite cost is negligible at this scale.
+
+### SQLite pros
+- Atomic/durable transactions + crash safety.
+- O(1) appends (no full rewrite/re-sort).
+- Indexed date/activity queries.
+- Real concurrency handling (JSON has no locking; two `track` processes can
+  clobber each other).
+- `sqlite3` is stdlib — no new dependency.
+
+### SQLite cons
+- Rewrite `Storage` + JSON→SQLite migration + large test-surface updates.
+- Lose human-readable / git-diffable / hand-editable data (a real convenience
+  here).
+- Ongoing schema-migration concerns.
+- Overkill for current scale.
+
+### Decision
+1. **Do not migrate now** — scale doesn't justify it; readable JSON is a feature.
+2. **Cheap high-value fix regardless:** make JSON writes atomic (temp file +
+   `os.replace`) to remove the current corruption risk. (Proposed as a separate
+   small item — not yet done.)
+3. **Revisit SQLite if/when:** multi-device sync, very large datasets, concurrent
+   access, or richer querying/reporting appear. `Storage` is already documented
+   as a swappable backend, so a future `SQLiteStorage` behind a small interface
+   (keeping JSON import/export) is the clean path.
+
 ## 8. Add a pause reason
 Add a pause reason when pausing tracking.
 
