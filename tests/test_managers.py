@@ -78,6 +78,49 @@ class TestTaskManager:
         assert success is True
         assert "Resumed" in message
 
+    def test_pause_with_reason(self, task_manager, storage):
+        task_manager.start("coding")
+
+        success, message = task_manager.pause("lunch break")
+
+        assert success is True
+        assert "Reason: lunch break" in message
+        assert storage.read_state().pause_reason == "lunch break"
+
+    def test_pause_without_reason_has_none(self, task_manager, storage):
+        task_manager.start("coding")
+
+        success, message = task_manager.pause()
+
+        assert success is True
+        assert "Reason:" not in message
+        assert storage.read_state().pause_reason is None
+
+    def test_pause_blank_reason_treated_as_none(self, task_manager, storage):
+        task_manager.start("coding")
+
+        success, message = task_manager.pause("   ")
+
+        assert success is True
+        assert "Reason:" not in message
+        assert storage.read_state().pause_reason is None
+
+    def test_resume_clears_pause_reason(self, task_manager, storage):
+        task_manager.start("coding")
+        task_manager.pause("lunch break")
+
+        task_manager.resume()
+
+        assert storage.read_state().pause_reason is None
+
+    def test_status_paused_shows_reason(self, task_manager):
+        task_manager.start("coding")
+        task_manager.pause("waiting on review")
+
+        status = task_manager.status()
+
+        assert "Reason: waiting on review" in status
+
     def test_resume_when_no_task(self, task_manager):
         success, message = task_manager.resume()
 

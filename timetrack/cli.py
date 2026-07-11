@@ -126,10 +126,11 @@ def stop():
 
 
 @main.command()
-def pause():
-    """Pause the current task."""
+@click.argument("reason", required=False)
+def pause(reason: Optional[str]):
+    """Pause the current task, optionally with a REASON."""
     tracker = TimeTracker()
-    success, message = tracker.pause()
+    success, message = tracker.pause(reason)
     click.echo(message)
 
 

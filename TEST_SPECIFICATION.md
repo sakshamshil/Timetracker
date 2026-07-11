@@ -94,14 +94,18 @@ This document provides a complete inventory of all features, commands, options, 
 ### 1.5 `pause` Command
 **Purpose**: Pause the current task
 
-**No arguments or options**
+**Arguments**:
+- `reason` (optional, positional): A free-text reason for the pause.
 
 **Edge Cases**:
 - No task running: Error
 - Task already paused: Error "❗ Task '{activity}' is already paused."
 - Task running: Pauses and calculates active time so far
+- Reason is optional; a blank/whitespace-only reason is stored as `None`.
+- Reason is saved on `ApplicationState.pause_reason` and cleared on resume.
 
 **Success Output**: "⏸️ Paused '{activity}'. ({duration} logged so far)." (duration via `format_minutes`)
+- If a reason is provided, " Reason: {reason}" is appended.
 **Error Output**: "❗ {message}"
 
 ---
@@ -115,6 +119,7 @@ This document provides a complete inventory of all features, commands, options, 
 - No task paused: Error
 - Task already running: Error "❗ Task '{activity}' is already running."
 - Calculates total paused time and adds to `total_paused_seconds`
+- Clears `pause_reason` (set back to `None`)
 
 **Success Output**: "🟢 Resumed tracking: '{activity}'. ({duration} already logged)." (duration via `format_minutes`)
 **Error Output**: "❗ {message}"
@@ -128,7 +133,7 @@ This document provides a complete inventory of all features, commands, options, 
 
 **Output Scenarios**:
 1. No task running: "⚪ No task is currently running."
-2. Task paused: "⏸️ Paused Task: '{activity}' ({duration} logged)" (duration via `format_minutes`)
+2. Task paused: "⏸️ Paused Task: '{activity}' ({duration} logged)" (duration via `format_minutes`); if a pause reason is set, " - Reason: {reason}" is appended
 3. Task running: "🟢 Active Task: '{activity}' (started at {time}, {duration} so far)" (duration via `format_minutes`)
 4. With notes: Displays list of notes under the task
 
@@ -817,6 +822,7 @@ files are left behind, and the original is preserved if the write fails.
 - `status: str = "running"` - "running" or "paused"
 - `pause_start_time: Optional[datetime] = None` - When pause began
 - `total_paused_seconds: float = 0.0` - Accumulated pause time
+- `pause_reason: Optional[str] = None` - Optional reason for the current pause
 - `notes: List[str] = Field(default_factory=list)` - Task notes
 
 ### 3.2 TimeEntry

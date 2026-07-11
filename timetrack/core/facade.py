@@ -101,14 +101,17 @@ class TimeTracker:
             return True, f"✅ {message}"
         return False, f"❗ {message}"
 
-    def pause(self) -> Tuple[bool, str]:
+    def pause(self, reason: Optional[str] = None) -> Tuple[bool, str]:
         """
         Pauses the current running task.
+
+        Args:
+            reason: An optional reason for pausing.
 
         Returns:
             A tuple containing a success flag and a message.
         """
-        success, message = self._tasks.pause()
+        success, message = self._tasks.pause(reason)
         if success:
             return True, f"⏸️ {message}"
         return False, f"❗ {message}"

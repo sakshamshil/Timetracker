@@ -2,7 +2,7 @@
 """Task lifecycle management for the timetrack application."""
 
 from datetime import datetime
-from typing import Tuple
+from typing import Optional, Tuple
 
 from ..models import ApplicationState, TimeEntry
 from .storage import Storage
@@ -102,9 +102,12 @@ class TaskManager:
             f"Stopped tracking '{log_entry.activity}'. Logged {format_minutes(duration_minutes)}.",
         )
 
-    def pause(self) -> Tuple[bool, str]:
+    def pause(self, reason: Optional[str] = None) -> Tuple[bool, str]:
         """
         Pauses the current running task.
+
+        Args:
+            reason: An optional reason for pausing.
 
         Returns:
             A tuple containing a success flag and a message.
@@ -125,12 +128,16 @@ class TaskManager:
 
         state.status = "paused"
         state.pause_start_time = now
+        state.pause_reason = reason.strip() if reason and reason.strip() else None
         self.storage.write_state(state)
 
-        return (
-            True,
-            f"Paused '{state.activity}'. ({format_minutes(active_minutes)} logged so far).",
+        message = (
+            f"Paused '{state.activity}'. ({format_minutes(active_minutes)} logged so far)."
         )
+        if state.pause_reason:
+            message += f" Reason: {state.pause_reason}"
+
+        return True, message
 
     def resume(self) -> Tuple[bool, str]:
         """
@@ -160,6 +167,7 @@ class TaskManager:
         state.total_paused_seconds += pause_duration
         state.status = "running"
         state.pause_start_time = None
+        state.pause_reason = None
         self.storage.write_state(state)
 
         return (
@@ -190,9 +198,12 @@ class TaskManager:
             else:
                 elapsed_seconds = 0
             elapsed_minutes = round(elapsed_seconds / 60)
-            output.append(
+            paused_line = (
                 f"Paused Task: '{activity_display}' ({format_minutes(elapsed_minutes)} logged)"
             )
+            if state.pause_reason:
+                paused_line += f" - Reason: {state.pause_reason}"
+            output.append(paused_line)
         else:
             # For running tasks
             elapsed_seconds = (

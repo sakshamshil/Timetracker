@@ -16,6 +16,7 @@ class ApplicationState(BaseModel):
         status (str): The current status, e.g., 'running' or 'paused'.
         pause_start_time (Optional[datetime]): The time a pause began.
         total_paused_seconds (float): The accumulated time in seconds the task has been paused.
+        pause_reason (Optional[str]): An optional reason for the current pause.
     """
 
     activity: str
@@ -23,6 +24,7 @@ class ApplicationState(BaseModel):
     status: str = "running"
     pause_start_time: Optional[datetime] = None
     total_paused_seconds: float = 0.0
+    pause_reason: Optional[str] = None
     notes: List[str] = Field(default_factory=list)
 
 

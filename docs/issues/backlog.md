@@ -258,6 +258,35 @@ add/stop/edit.
 ## 8. Add a pause reason
 Add a pause reason when pausing tracking.
 
+### Status
+**✅ Done** — implemented, tested (unit + manual CLI), docs updated.
+
+### Scope (confirmed with user)
+Ephemeral + optional: `track pause [REASON]` saves an optional reason on the
+paused state and shows it in `track status`; cleared on resume. Not written to
+the final log entry. Reason is never mandatory.
+
+### Implementation
+- `models.py`: added `ApplicationState.pause_reason: Optional[str] = None`
+  (backward compatible — old state files default to None).
+- `tasks.py`: `pause(reason=None)` stores the trimmed reason (blank → None) and
+  appends " Reason: {reason}" to the pause message; `resume()` clears it;
+  `status()` appends " - Reason: {reason}" to the paused line when set.
+- `facade.py`: `pause(reason=None)` passes it through.
+- `cli.py`: `pause` gains an optional positional `REASON` argument.
+
+### Verification
+- New tests in `test_managers.py`: pause with/without/blank reason, resume clears
+  reason, status shows reason (5). All pass.
+- Manual CLI (isolated HOME): reason shows in pause message and status, absent
+  when omitted, cleared after resume.
+- Full suite: 161 passed + 4 pre-existing `test_facade.py` date-parse failures.
+
+### Files touched
+- `timetrack/models.py`, `timetrack/core/tasks.py`, `timetrack/core/facade.py`,
+  `timetrack/cli.py`, `tests/test_managers.py`, `README.md`,
+  `TEST_SPECIFICATION.md`
+
 ## 9. "Memo Expert" feature
 Add a "Memo Expert" feature.
 

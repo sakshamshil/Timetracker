@@ -121,14 +121,21 @@ track stop
 ---
 
 #### 3. Pause the Current Task
-If you need to take a break, use the `pause` command.
+If you need to take a break, use the `pause` command. You can optionally pass a
+reason, which is shown in `track status` and cleared when you resume.
 
 **Usage:**
 ```bash
+track pause [REASON]
+```
+
+**Examples:**
+```bash
 track pause
+track pause "lunch break"
 ```
 > **Output:**
-> `⏸️ Paused 'Developing a new feature'.`
+> `⏸️ Paused 'Developing a new feature'. (20m logged so far). Reason: lunch break`
 
 ---
 
@@ -177,6 +184,7 @@ track status
 >
 > **Output (if a task is paused):**
 > `⏸️ Paused Task: 'Developing a new feature' (20m logged)`
+> `⏸️ Paused Task: 'Developing a new feature' (20m logged) - Reason: lunch break`
 >
 > **Output (if no task is running):**
 > `⚪ No task is currently running.`
