@@ -508,6 +508,16 @@ class TimeTracker:
             return True, f"✅ Dashboard written to {message}"
         return False, f"❗ {message}"
 
+    def check_sync_ready(self) -> Tuple[bool, str]:
+        """Pre-flight check that the deploy backend is usable.
+
+        Returns:
+            ``(ok, message)`` — ``ok`` is False with a clear, actionable
+            message when the backend cannot deploy (e.g. missing CLI).
+        """
+        backend = get_backend(self.get_sync_config())
+        return backend.preflight()
+
     def sync(self) -> Tuple[bool, str]:
         """Generate and deploy the dashboard.
 

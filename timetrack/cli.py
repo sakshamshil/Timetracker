@@ -226,6 +226,10 @@ def dashboard(days: int, out_dir: Optional[str]):
 def sync(install_cron: bool):
     """Deploy your dashboard so you can view it from anywhere."""
     tracker = TimeTracker()
+    ok, msg = tracker.check_sync_ready()
+    if not ok:
+        click.echo(f"❗ {msg}")
+        return
     if not tracker.get_sync_config().configured:
         _run_sync_wizard(tracker)
     if install_cron:

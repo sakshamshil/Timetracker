@@ -113,13 +113,31 @@ def test_generate_and_sync(monkeypatch, temp_data_dir, sample_entries):
 
 def test_sync_wizard_saves_config(monkeypatch, temp_data_dir, sample_entries):
     _patch_data(monkeypatch, temp_data_dir)
-    with mock.patch("timetrack.core.facade.get_backend") as gb:
-        gb.return_value.deploy.return_value = (True, "https://track-dash.vercel.app")
+    monkeypatch.setattr("timetrack.core.deploy.shutil.which", lambda x: "/usr/bin/vercel")
+    with mock.patch("timetrack.core.deploy.subprocess.run") as run:
+        run.return_value = mock.Mock(
+            returncode=0, stdout="https://track-dash.vercel.app\n", stderr=""
+        )
         runner = CliRunner()
         # continue=y, token=(empty), project=(default), domain=(empty), protect=n
-        result = runner.invoke(main, ["sync"], input="y\n\n\n\nn\n")
+        answers = "\n".join(["y", "", "", "", "n"]) + "\n"
+        result = runner.invoke(main, ["sync"], input=answers)
     assert result.exit_code == 0
     assert "live at" in result.output
     t = TimeTracker()
     assert t.get_sync_config().configured is True
     assert t.get_sync_config().passphrase_protected is False
+
+
+def test_sync_preflight_blocks_without_vercel(monkeypatch, temp_data_dir):
+    _patch_data(monkeypatch, temp_data_dir)
+    monkeypatch.setattr("timetrack.core.deploy.shutil.which", lambda x: None)
+    runner = CliRunner()
+    answers = "\n".join(["y", "", "", "", "n"]) + "\n"
+    result = runner.invoke(main, ["sync"], input=answers)
+    # Pre-flight blocks before the wizard: clear message, no config saved.
+    assert result.exit_code == 0
+    assert "vercel" in result.output.lower()
+    assert "Sync configuration saved" not in result.output
+    t = TimeTracker()
+    assert t.get_sync_config().configured is False

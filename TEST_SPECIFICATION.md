@@ -421,6 +421,10 @@ ID    Created              Note
 **Options**:
 - `--install-cron` (flag): Also install a daily scheduled job (launchd on macOS, crontab on Linux).
 
+**Pre-flight**: before any prompts, `track sync` checks the deploy backend is
+ready (e.g. `vercel` CLI installed). If not, it prints a clear
+message and exits — it does NOT run the wizard or generate anything.
+
 **First run**: launches an interactive wizard:
 - Confirms setup.
 - Host: `vercel` (only backend in v1).
@@ -823,6 +827,7 @@ files are left behind, and the original is preserved if the write fails.
 **Dashboard & Sync Methods**:
 - `get_sync_config() -> SyncConfig`: Returns current sync config.
 - `configure_sync(**changes) -> (bool, str)`: Persists sync config fields.
+- `check_sync_ready() -> (bool, str)`: Pre-flight check that the deploy backend is usable (e.g. CLI installed); returns a clear message when not.
 - `generate_dashboard(out_dir, days) -> (bool, str)`: Generates local `index.html` (uses stored passphrase when `passphrase_protected`).
 - `sync() -> (bool, str)`: Generates then deploys via the configured backend; stable URL.
 - `install_cron() -> (bool, str)`: Installs daily scheduled job (launchd/crontab).

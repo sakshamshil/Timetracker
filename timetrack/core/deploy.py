@@ -20,6 +20,15 @@ class DeployBackend(ABC):
         """Deploy ``directory`` and return ``(success, url_or_error)``."""
         raise NotImplementedError
 
+    def preflight(self) -> Tuple[bool, str]:
+        """Check that this backend can deploy before any prompts.
+
+        Returns:
+            ``(ok, message)`` — ``ok`` is False with a clear, actionable
+            message when the backend is not ready (e.g. missing CLI).
+        """
+        return True, ""
+
 
 class VercelBackend(DeployBackend):
     """Deploy the dashboard to Vercel via the ``vercel`` CLI."""
@@ -57,6 +66,16 @@ class VercelBackend(DeployBackend):
         if result.returncode != 0:
             return False, out.strip() or "vercel exited with an error."
         return True, out
+
+    def preflight(self) -> Tuple[bool, str]:
+        if shutil.which("vercel") is None:
+            return (
+                False,
+                "The 'vercel' CLI is not installed. Install it first:\n"
+                "  npm i -g vercel\n"
+                "  then: vercel login   (or set VERCEL_TOKEN)",
+            )
+        return True, ""
 
     def deploy(self, directory: Path, prod: bool = True) -> Tuple[bool, str]:
         # Attach a custom domain on first deploy (best effort).
