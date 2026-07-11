@@ -1,12 +1,16 @@
 # project/timetrack/core/memos.py
 """Memo management for the timetrack application."""
 
+import textwrap
 from datetime import datetime
 from typing import Tuple
 
 from ..models import Memo
 from .storage import Storage
 from .utils import truncate_text
+
+MEMO_NOTE_WIDTH = 45
+MEMO_NOTE_INDENT = 27
 
 
 class MemoManager:
@@ -60,9 +64,12 @@ class MemoManager:
 
         for i, memo in enumerate(memos.memos):
             created_str = memo.created_at.strftime("%Y-%m-%d %H:%M")
-            # Truncate long memos for display
-            display_text = truncate_text(memo.text, 45)
-            output.append(f"{i:<5} {created_str:<20} {display_text}")
+            # Wrap long memos onto continuation lines aligned under the Note
+            # column so the full text is shown without being cut off.
+            lines = textwrap.wrap(memo.text, width=MEMO_NOTE_WIDTH) or [""]
+            output.append(f"{i:<5} {created_str:<20} {lines[0]}")
+            for cont in lines[1:]:
+                output.append(f"{' ' * MEMO_NOTE_INDENT}{cont}")
 
         output.append("-" * 70)
 

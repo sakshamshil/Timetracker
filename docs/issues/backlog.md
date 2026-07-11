@@ -93,8 +93,44 @@ Add an interactive "easy mode" for adding tasks.
 ## 2. Improve the update tracking feature
 Improve the update tracking feature.
 
+### Status
+**⏭️ Skipped for now** — reason: requirement is too vague. "Improve the update
+tracking feature" doesn't specify what to improve (self-update flow in
+`updater.py`? version tracking? update-available notifications?). Revisit once
+the desired behavior is clarified.
+
 ## 3. Fix memo display truncation
 Fix the memo display so longer text isn't cut off.
+
+### Status
+**✅ Done** — implemented, tested (unit + manual CLI), docs updated.
+
+### Root cause
+`MemoManager.list_all` (`core/memos.py`) truncated the Note to 45 chars via
+`truncate_text(memo.text, 45)`, adding "...". Since Note is the **last** column,
+truncation served no alignment purpose and hid content.
+
+### Fix (confirmed approach with user: wrap under Note column)
+- Replaced truncation with `textwrap.wrap(text, width=45)`; the first wrapped
+  line prints on the ID/Created row, and continuation lines are indented 27
+  chars (`MEMO_NOTE_INDENT`) to align under the Note column. Full text is always
+  shown.
+- `truncate_text` is still used by `remove()` (short confirmation string), so
+  the import stays.
+
+### Verification
+- Added `tests/test_managers.py::TestMemoManager::test_list_long_memo_not_truncated`
+  and `test_list_long_memo_wraps_and_aligns`. All memo tests pass (8).
+- Manual CLI smoke (isolated HOME): long memo wraps across aligned lines, no
+  ellipsis.
+- Full suite: 146 passed, 4 pre-existing `test_facade.py` date-parsing failures
+  (unrelated). Pre-existing ruff warnings (unused imports) remain in
+  `test_managers.py` — not introduced here; `memos.py` passes ruff clean.
+
+### Files touched
+- `timetrack/core/memos.py` (wrap instead of truncate)
+- `tests/test_managers.py` (2 new tests)
+- `README.md`, `TEST_SPECIFICATION.md` (docs)
 
 ## 4. Log durations in hours / clearer units
 Display log durations in hours instead of minutes (or make the unit clearer).

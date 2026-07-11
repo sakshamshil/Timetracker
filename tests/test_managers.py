@@ -424,6 +424,33 @@ class TestMemoManager:
         assert "Second memo" in result
         assert "ID" in result
 
+    def test_list_long_memo_not_truncated(self, memo_manager):
+        long_text = (
+            "This is a very long memo that clearly exceeds forty-five "
+            "characters and previously would have been cut off with an ellipsis"
+        )
+        memo_manager.add(long_text)
+
+        result = memo_manager.list_all()
+
+        assert "..." not in result
+        for word in long_text.split():
+            assert word in result
+
+    def test_list_long_memo_wraps_and_aligns(self, memo_manager):
+        long_text = "word " * 30
+        memo_manager.add(long_text.strip())
+
+        result = memo_manager.list_all()
+        lines = result.splitlines()
+
+        continuation_lines = [
+            ln for ln in lines if ln.startswith(" " * 27) and ln.strip()
+        ]
+        assert continuation_lines, "expected wrapped continuation lines"
+        for ln in lines:
+            assert len(ln) <= 27 + 45 + 20
+
     def test_remove_memo(self, memo_manager):
         memo_manager.add("To be removed")
 

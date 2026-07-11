@@ -480,6 +480,16 @@ track memo
 > ----------------------------------------------------------------------
 > ```
 
+Long memos are shown in full: the text wraps onto continuation lines aligned
+under the **Note** column instead of being cut off with an ellipsis.
+> ```
+> ID    Created              Note
+> ----------------------------------------------------------------------
+> 0     2025-12-23 15:30     This is a much longer memo that wraps onto
+>                            multiple lines aligned under the Note column
+> ----------------------------------------------------------------------
+> ```
+
 **3. Remove a memo:**
 ```bash
 track memo --remove 0

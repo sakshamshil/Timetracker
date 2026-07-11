@@ -305,10 +305,22 @@ ID    Created              Note
 ----------------------------------------------------------------------
 ```
 
+**Long-Memo Display**: Memo text is **not** truncated in list mode. Text longer
+than the Note column width (45 chars) wraps onto continuation lines indented to
+align under the Note column (indent = 27 chars). Example:
+```
+ID    Created              Note
+----------------------------------------------------------------------
+0     2025-01-31 10:00     This is a much longer memo that wraps onto
+                           multiple aligned continuation lines
+----------------------------------------------------------------------
+```
+
 **Edge Cases**:
 - No memos: "No memos found."
 - Invalid memo ID: "Invalid ID: {id}. Valid IDs: 0-{max}."
 - Remove with no memos: "No memos found."
+- Long memo (>45 chars): wrapped across lines, never truncated with "...".
 
 **Success Output**: "✅ Memo added." / "✅ Memo removed: '{text}'"
 **Error Output**: "❗ {message}"
@@ -621,7 +633,8 @@ ID    Created              Note
 #### `list_all() -> str`
 - Reads memos
 - Returns formatted table with ID, Created, Note
-- Truncates notes to 45 chars
+- Wraps note text at 45 chars (`textwrap.wrap`); continuation lines are indented
+  27 chars to align under the Note column. Notes are never truncated.
 - Returns "No memos found." if empty
 
 #### `remove(memo_id: int) -> Tuple[bool, str]`
