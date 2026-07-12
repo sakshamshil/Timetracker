@@ -153,15 +153,16 @@ class EntryManager:
         Returns:
             A tuple containing a success flag and a message.
         """
+        now_str = datetime.now().strftime("%d-%m-%Y %H:%M")
         today_str = date.today().strftime("%Y-%m-%d")
         yesterday_str = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-        start_str = start_str.lower().replace("today", today_str)
-        start_str = start_str.lower().replace("yesterday", yesterday_str)
+        start_str = start_str.lower()
+        start_str = start_str.replace("now", now_str).replace("today", today_str).replace("yesterday", yesterday_str)
 
         if end_str:
-            end_str = end_str.lower().replace("today", today_str)
-            end_str = end_str.lower().replace("yesterday", yesterday_str)
+            end_str = end_str.lower()
+            end_str = end_str.replace("now", now_str).replace("today", today_str).replace("yesterday", yesterday_str)
 
         try:
             start_time = parse(start_str, dayfirst=True)
@@ -382,10 +383,12 @@ class EntryManager:
         Returns:
             An error message string if invalid, or None if valid.
         """
+        now_str = datetime.now().strftime("%d-%m-%Y %H:%M")
         today_str = date.today().strftime("%Y-%m-%d")
         yesterday_str = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
         candidate = (
             start_str.lower()
+            .replace("now", now_str)
             .replace("today", today_str)
             .replace("yesterday", yesterday_str)
         )

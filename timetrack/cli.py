@@ -1,7 +1,8 @@
 # project/timetrack/cli.py
 """Command-line interface for the timetrack application."""
-
+import re
 from typing import Optional
+
 import click  # type: ignore
 from .core import TimeTracker
 
@@ -68,20 +69,27 @@ def run_easy_mode(initial_activity: Optional[str] = None) -> None:
         click.echo("❗ Error: Activity name cannot be empty.", err=True)
         activity = click.prompt("Activity name", default="")
 
-    # Collect time fields, re-prompting on validation failure.
+    # Collect time fields, re-prompting only the failing field on error.
     while True:
         start_str = click.prompt("Start time (e.g. 'today 10am', 'yesterday 3pm')")
         start_error = tracker.validate_start_time(start_str)
         if start_error:
             click.echo(f"❗ Error: {start_error}", err=True)
             continue
+        break
 
+    while True:
         end_str = click.prompt(
             "End time (leave blank to use a duration)", default=""
         )
         duration_str: Optional[str] = None
-        if not end_str.strip():
+        stripped = end_str.strip()
+        if not stripped:
             duration_str = click.prompt("Duration (e.g. '1h', '30m', '1h30m')")
+            end_str = ""
+        elif re.match(r"^\d+[hm]", stripped):
+            duration_str = stripped
+            end_str = ""
 
         success, message = tracker.add_entry(
             activity, start_str, end_str or None, duration_str
@@ -89,7 +97,6 @@ def run_easy_mode(initial_activity: Optional[str] = None) -> None:
         click.echo(message)
         if success:
             return
-        # On failure (end/duration), loop and re-collect the time fields.
 
 
 @main.command()

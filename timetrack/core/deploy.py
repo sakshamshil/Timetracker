@@ -95,6 +95,9 @@ class VercelBackend(DeployBackend):
         if not ok:
             return False, out
 
+        # The production ("Aliased") URL is the stable one that serves the
+        # actual content.  The per-deployment slug URL (the first .vercel.app
+        # match) 302‑redirects to the Vercel dashboard and is useless.
         url = self._extract_url(out)
         if not url and self.domain:
             url = f"https://{self.domain}"
@@ -104,13 +107,15 @@ class VercelBackend(DeployBackend):
 
     @staticmethod
     def _extract_url(out: str) -> Optional[str]:
-        # Vercel prints the deployment URL, but its version/telemetry
-        # banner can land on the same (unterminated) line as the URL
-        # (e.g. "...vercel.appVercel CLI 55.0.0..."). The deploy URL
-        # always ends in ".vercel.app", so match up to that boundary;
-        # the caller falls back to the custom domain when absent.
-        match = re.search(r"https://[^\s'\"]*?\.vercel\.app", out)
-        return match.group(0) if match else None
+        # Prefer the "Aliased" line — that is the production URL.
+        m = re.search(r"Aliased\s+https?://(\S+)", out)
+        if m:
+            return "https://" + m.group(1)
+        # Fallback: last .vercel.app URL (typically the alias).
+        matches = re.findall(r"https?://[^\s'\"]*?\.vercel\.app", out)
+        if matches:
+            return matches[-1]
+        return None
 
 
 def get_backend(config: SyncConfig) -> DeployBackend:
